@@ -1,4 +1,4 @@
-package com.oit.dondok.global.exception.response;
+package com.oit.dondok.global.exception.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.oit.dondok.global.exception.CustomException;
