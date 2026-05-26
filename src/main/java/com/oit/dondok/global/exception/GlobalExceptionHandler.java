@@ -4,7 +4,6 @@ import static com.oit.dondok.global.exception.GlobalErrorCode.INVALID_INPUT;
 import static com.oit.dondok.global.exception.GlobalErrorCode.METHOD_NOT_SUPPORTED;
 import static com.oit.dondok.global.exception.GlobalErrorCode.SERVER_ERROR;
 
-import com.oit.dondok.global.exception.dto.response.ApiResponse;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
