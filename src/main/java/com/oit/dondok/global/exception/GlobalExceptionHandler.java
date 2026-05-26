@@ -5,10 +5,8 @@ import static com.oit.dondok.global.exception.GlobalErrorCode.METHOD_NOT_SUPPORT
 import static com.oit.dondok.global.exception.GlobalErrorCode.SERVER_ERROR;
 
 import com.oit.dondok.global.exception.response.ApiResponse;
-
 import java.util.Objects;
 import java.util.stream.Collectors;
-
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.MessageSourceResolvable;
 import org.springframework.http.HttpHeaders;
