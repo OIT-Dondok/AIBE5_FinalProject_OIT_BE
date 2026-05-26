@@ -6,6 +6,8 @@ import static com.oit.dondok.global.exception.GlobalErrorCode.SERVER_ERROR;
 
 import java.util.Objects;
 import java.util.stream.Collectors;
+
+import com.oit.dondok.global.exception.dto.response.ApiResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.MessageSourceResolvable;
 import org.springframework.http.HttpHeaders;

@@ -1,6 +1,8 @@
-package com.oit.dondok.global.exception;
+package com.oit.dondok.global.exception.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.oit.dondok.global.exception.CustomException;
+import com.oit.dondok.global.exception.ErrorCode;
 import lombok.Builder;
 import org.springframework.http.HttpStatus;
 
