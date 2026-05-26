@@ -149,8 +149,8 @@ Nginx 전환 이후에도 `http://127.0.0.1:8080/api/health` 진입점 헬스체
 Prometheus는 blue와 green 컨테이너를 모두 scrape 대상으로 둔다.
 
 ```text
-api-server-blue:8080/api/actuator/prometheus
-api-server-green:8080/api/actuator/prometheus
+api-server-blue -> http://api-server-blue.example:8080/api/actuator/prometheus
+api-server-green -> http://api-server-green.example:8080/api/actuator/prometheus
 ```
 
 컨테이너 로그는 Docker `json-file` 드라이버로 남기며, Promtail이 `/var/lib/docker/containers`와 Docker socket을 읽어 Loki로 전송한다. API 컨테이너에는 로그 로테이션을 적용해 Promtail 수집 여부와 관계없이 로그 파일이 계속 커져 디스크를 소진하지 않도록 한다.
