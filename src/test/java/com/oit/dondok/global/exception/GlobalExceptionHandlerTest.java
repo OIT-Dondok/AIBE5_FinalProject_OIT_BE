@@ -110,13 +110,16 @@ class GlobalExceptionHandlerTest {
     mockMvc
         .perform(post("/body-validation").contentType(MediaType.TEXT_PLAIN).content("name=test"))
         .andExpect(status().isUnsupportedMediaType())
+        .andExpect(
+            header().string(HttpHeaders.ACCEPT, containsString(MediaType.APPLICATION_JSON_VALUE)))
         .andExpect(jsonPath("$.code").value("UNSUPPORTED_MEDIA_TYPE"))
         .andExpect(jsonPath("$.message").value("지원하지 않는 Content-Type 입니다."));
   }
 
-  // 지원하지 않는 Accept 요청이 406 NOT_ACCEPTABLE 응답으로 변환되는지 검증한다.
+  // Accept: application/xml 요청으로 406 negotiation 경로를 검증한다.
+  // 요청한 Accept 타입에 맞춰 에러 응답도 XML로 직렬화되므로 xpath로 ErrorResponse를 확인한다.
   @Test
-  void notAcceptable() throws Exception {
+  void notAcceptableWithXmlAccept() throws Exception {
     mockMvc
         .perform(get("/json-only").accept(MediaType.APPLICATION_XML))
         .andExpect(status().isNotAcceptable())
@@ -246,8 +249,7 @@ class GlobalExceptionTestController {
 class ValidatedExceptionTestController {
 
   @GetMapping("/constraint-violation")
-  void constraintViolation(
-      @RequestParam @Min(value = 1, message = "?섏씠吏??1 ?댁긽?댁뼱???⑸땲??") int page) {}
+  void constraintViolation(@RequestParam @Min(value = 1, message = "페이지는 1 이상이어야 합니다.") int page) {}
 }
 
 class TestRequest {
