@@ -7,35 +7,35 @@ import lombok.Builder;
 import org.springframework.http.HttpStatus;
 
 @Builder
-public record ApiResponse(@JsonIgnore HttpStatus status, String code, String message) {
+public record ErrorResponse(@JsonIgnore HttpStatus status, String code, String message) {
 
-  public static ApiResponse error(CustomException exception) {
+  public static ErrorResponse error(CustomException exception) {
     ErrorCode errorCode = exception.getErrorCode();
 
-    return ApiResponse.builder()
+    return ErrorResponse.builder()
         .status(errorCode.getStatus())
         .code(errorCode.getCode())
         .message(exception.getMessage())
         .build();
   }
 
-  public static ApiResponse error(ErrorCode errorCode) {
-    return ApiResponse.builder()
+  public static ErrorResponse error(ErrorCode errorCode) {
+    return ErrorResponse.builder()
         .status(errorCode.getStatus())
         .code(errorCode.getCode())
         .message(errorCode.getMessage())
         .build();
   }
 
-  public static ApiResponse error(ErrorCode errorCode, String message) {
-    return ApiResponse.builder()
+  public static ErrorResponse error(ErrorCode errorCode, String message) {
+    return ErrorResponse.builder()
         .status(errorCode.getStatus())
         .code(errorCode.getCode())
         .message(message)
         .build();
   }
 
-  public static ApiResponse of(HttpStatus status, String code, String message) {
-    return ApiResponse.builder().status(status).code(code).message(message).build();
+  public static ErrorResponse of(HttpStatus status, String code, String message) {
+    return ErrorResponse.builder().status(status).code(code).message(message).build();
   }
 }
