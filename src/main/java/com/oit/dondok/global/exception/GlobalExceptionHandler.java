@@ -1,6 +1,9 @@
 package com.oit.dondok.global.exception;
 
-import static com.oit.dondok.global.exception.GlobalErrorCode.*;
+import static com.oit.dondok.global.exception.GlobalErrorCode.INVALID_INPUT;
+import static com.oit.dondok.global.exception.GlobalErrorCode.METHOD_NOT_SUPPORTED;
+import static com.oit.dondok.global.exception.GlobalErrorCode.NOT_FOUND;
+import static com.oit.dondok.global.exception.GlobalErrorCode.SERVER_ERROR;
 
 import com.oit.dondok.global.exception.dto.response.ErrorResponse;
 import java.util.Objects;
