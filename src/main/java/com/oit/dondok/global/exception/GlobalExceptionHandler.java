@@ -4,6 +4,7 @@ import static com.oit.dondok.global.exception.GlobalErrorCode.INVALID_INPUT;
 import static com.oit.dondok.global.exception.GlobalErrorCode.METHOD_NOT_SUPPORTED;
 import static com.oit.dondok.global.exception.GlobalErrorCode.NOT_FOUND;
 import static com.oit.dondok.global.exception.GlobalErrorCode.SERVER_ERROR;
+import static com.oit.dondok.global.exception.GlobalErrorCode.UNSUPPORTED_MEDIA_TYPE;
 
 import com.oit.dondok.global.exception.dto.response.ErrorResponse;
 import java.util.Objects;
@@ -43,6 +44,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     ErrorResponse response = ErrorResponse.error(errorCode, message);
 
     return ResponseEntity.status(response.status()).body(response);
+  }
+
+  private ResponseEntity<Object> errorResponse(ErrorCode errorCode, HttpHeaders headers) {
+    ErrorResponse response = ErrorResponse.error(errorCode);
+
+    return ResponseEntity.status(response.status()).headers(headers).body(response);
   }
 
   // 비즈니스 예외
@@ -129,7 +136,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
       HttpHeaders headers,
       HttpStatusCode status,
       WebRequest request) {
-    return errorResponse(INVALID_INPUT);
+    return errorResponse(UNSUPPORTED_MEDIA_TYPE, headers);
   }
 
   // 정적 리소스 404

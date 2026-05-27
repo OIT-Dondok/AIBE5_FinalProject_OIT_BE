@@ -99,9 +99,9 @@ class GlobalExceptionHandlerTest {
   void unsupportedMediaType() throws Exception {
     mockMvc
         .perform(post("/body-validation").contentType(MediaType.TEXT_PLAIN).content("name=test"))
-        .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.code").value("INVALID_INPUT"))
-        .andExpect(jsonPath("$.message").value("유효한 입력 형식이 아닙니다."));
+        .andExpect(status().isUnsupportedMediaType())
+        .andExpect(jsonPath("$.code").value("UNSUPPORTED_MEDIA_TYPE"))
+        .andExpect(jsonPath("$.message").value("지원하지 않는 Content-Type 입니다."));
   }
 
   @Test
