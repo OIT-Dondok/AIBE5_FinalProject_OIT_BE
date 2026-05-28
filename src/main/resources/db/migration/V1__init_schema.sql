@@ -506,8 +506,6 @@ CREATE TABLE settlement_item (
     refund_amount                   BIGINT           NOT NULL DEFAULT 0,     -- 최종 지급 source of truth = base_refund_amount + remainder_bonus_amount
     effective_moderation_snapshot   JSON             NULL,                   -- 정산 시점 latest-effective moderation; read-only audit
     moderation_chain_ref            JSON             NULL,                   -- moderation_history chain ref {"latest_id":..., "count":...}
-    draw_key_snapshot               CHAR(64)         NULL,                   -- non-payout 표시/설명 ordering key (SHA-256)
-    tie_break_rank                  INT              NULL,                   -- non-payout 표시/설명 순위
     calculation_reason              JSON             NOT NULL,               -- 포함/제외 근거 vocabulary
     point_history_id                BIGINT           NULL,                   -- nullable; SUCCEEDED 시 모두 채워져야 함
     created_at                      DATETIME(6)      NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
