@@ -23,9 +23,9 @@ public class MemberService {
   private final PasswordEncoder passwordEncoder;
 
   @Transactional
-  public SignupResponse signup(SignupRequest request) {
-    String email = request.email().trim().toLowerCase(Locale.ROOT);
-    String nickname = request.nickname().trim();
+  public Member signup(String email, String password, String nickname) {
+    email = email.trim().toLowerCase(Locale.ROOT);
+    nickname = nickname.trim();
 
     if (nickname.length() < 2 || nickname.length() > 50) {
       throw new CustomException(GlobalErrorCode.INVALID_INPUT);
@@ -39,13 +39,12 @@ public class MemberService {
       throw new CustomException(MemberErrorCode.NICKNAME_ALREADY_EXISTS);
     }
 
-    String passwordHash = passwordEncoder.encode(request.password());
+    String passwordHash = passwordEncoder.encode(password);
 
     Member member = Member.create(email, passwordHash, nickname);
 
     try {
-      Member savedMember = memberRepository.saveAndFlush(member);
-      return SignupResponse.from(savedMember);
+      return memberRepository.saveAndFlush(member);
     } catch (DataIntegrityViolationException exception) {
       Throwable cause = exception;
 
