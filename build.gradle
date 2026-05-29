@@ -46,9 +46,6 @@ dependencyManagement {
 
 dependencies {
 	constraints {
-		implementation("org.webjars:swagger-ui:${swaggerUiVersion}") {
-			because 'springdoc 2.5.0 keeps Spring Boot 3.2 compatibility but pulls a vulnerable Swagger UI webjar'
-		}
 		checkstyle('org.codehaus.plexus:plexus-utils:4.0.3') {
 			because 'Checkstyle pulls an older plexus-utils version flagged by dependency-check'
 		}
@@ -145,8 +142,10 @@ tasks.named('compileJava', JavaCompile) {
 	options.generatedSourceOutputDirectory = generated.get().asFile
 }
 
-tasks.withType(Checkstyle).configureEach {
-	exclude '**/build/generated/**'
+tasks.named('checkstyleMain', Checkstyle) {
+	source = fileTree('src/main/java') {
+		include '**/*.java'
+	}
 }
 
 clean {

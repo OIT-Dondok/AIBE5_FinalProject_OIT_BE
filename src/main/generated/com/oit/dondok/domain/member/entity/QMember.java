@@ -19,7 +19,10 @@ public class QMember extends EntityPathBase<Member> {
 
     public static final QMember member = new QMember("member1");
 
-    public final DateTimePath<java.time.LocalDateTime> createdAt = createDateTime("createdAt", java.time.LocalDateTime.class);
+    public final com.oit.dondok.global.entity.QAuditableTimeEntity _super = new com.oit.dondok.global.entity.QAuditableTimeEntity(this);
+
+    //inherited
+    public final DateTimePath<java.time.LocalDateTime> createdAt = _super.createdAt;
 
     public final StringPath email = createString("email");
 
@@ -35,7 +38,8 @@ public class QMember extends EntityPathBase<Member> {
 
     public final StringPath statusMessage = createString("statusMessage");
 
-    public final DateTimePath<java.time.LocalDateTime> updatedAt = createDateTime("updatedAt", java.time.LocalDateTime.class);
+    //inherited
+    public final DateTimePath<java.time.LocalDateTime> updatedAt = _super.updatedAt;
 
     public final ComparablePath<java.util.UUID> uuid = createComparable("uuid", java.util.UUID.class);
 

@@ -22,7 +22,10 @@ public class QMemberRefreshToken extends EntityPathBase<MemberRefreshToken> {
 
     public static final QMemberRefreshToken memberRefreshToken = new QMemberRefreshToken("memberRefreshToken");
 
-    public final DateTimePath<java.time.LocalDateTime> createdAt = createDateTime("createdAt", java.time.LocalDateTime.class);
+    public final com.oit.dondok.global.entity.QCreatedTimeEntity _super = new com.oit.dondok.global.entity.QCreatedTimeEntity(this);
+
+    //inherited
+    public final DateTimePath<java.time.LocalDateTime> createdAt = _super.createdAt;
 
     public final DateTimePath<java.time.LocalDateTime> expiresAt = createDateTime("expiresAt", java.time.LocalDateTime.class);
 

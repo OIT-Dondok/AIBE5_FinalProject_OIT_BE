@@ -10,6 +10,7 @@ public record SignupResponse(
     @JsonProperty("member_uuid") UUID memberUuid,
     String email,
     String nickname,
+    @JsonProperty("profile_image_s3_key") String profileImageS3Key,
     MemberStatus status,
     @JsonProperty("created_at") LocalDateTime createdAt) {
   public static SignupResponse from(Member member) {
@@ -17,6 +18,7 @@ public record SignupResponse(
         member.getUuid(),
         member.getEmail(),
         member.getNickname(),
+        member.getProfileImageS3Key(),
         member.getStatus(),
         member.getCreatedAt());
   }

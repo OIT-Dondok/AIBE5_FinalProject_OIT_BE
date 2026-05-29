@@ -1,5 +1,6 @@
 package com.oit.dondok.domain.member.entity;
 
+import com.oit.dondok.global.entity.AuditableTimeEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -10,7 +11,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
-import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -27,38 +27,34 @@ import lombok.NoArgsConstructor;
       @UniqueConstraint(name = "uk_member_nickname", columnNames = "nickname")
     })
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Member {
+public class Member extends AuditableTimeEntity {
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
+  @Column(name = "id")
   private Long id;
 
-  @Column(nullable = false)
+  @Column(name = "uuid", nullable = false)
   private UUID uuid;
 
-  @Column(nullable = false, length = 255)
+  @Column(name = "email", nullable = false, length = 255)
   private String email;
 
-  @Column(nullable = false)
+  @Column(name = "password_hash", nullable = false, length = 255)
   private String passwordHash;
 
-  @Column(nullable = false, length = 50)
+  @Column(name = "nickname", nullable = false, length = 50)
   private String nickname;
 
+  @Column(name = "profile_image_s3_key", length = 255)
   private String profileImageS3Key;
 
-  @Column(length = 100)
+  @Column(name = "status_message", length = 100)
   private String statusMessage;
 
   @Enumerated(EnumType.STRING)
-  @Column(nullable = false, length = 20)
+  @Column(name = "status", nullable = false, length = 20)
   private MemberStatus status;
-
-  @Column(nullable = false)
-  private LocalDateTime createdAt;
-
-  @Column(nullable = false)
-  private LocalDateTime updatedAt;
 
   public static Member create(String email, String passwordHash, String nickname) {
     Member member = new Member();
@@ -67,8 +63,6 @@ public class Member {
     member.passwordHash = passwordHash;
     member.nickname = nickname;
     member.status = MemberStatus.ACTIVE;
-    member.createdAt = LocalDateTime.now();
-    member.updatedAt = LocalDateTime.now();
     return member;
   }
 }
