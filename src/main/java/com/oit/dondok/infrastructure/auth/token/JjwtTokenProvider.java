@@ -13,6 +13,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
+import java.util.Objects;
 import java.util.UUID;
 import javax.crypto.SecretKey;
 import lombok.RequiredArgsConstructor;
@@ -49,6 +50,8 @@ public class JjwtTokenProvider implements TokenProvider {
   }
 
   private String createToken(UUID memberUuid, String tokenType, Duration expiration) {
+    Objects.requireNonNull(memberUuid, "memberUuid must not be null");
+
     Instant now = Instant.now();
     Instant expiresAt = now.plus(expiration);
 
@@ -63,6 +66,10 @@ public class JjwtTokenProvider implements TokenProvider {
   }
 
   private TokenPayload parseToken(String token, String expectedTokenType) {
+    if (token == null || token.isBlank()) {
+      throw invalidTokenException(expectedTokenType, null);
+    }
+
     try {
       Claims claims =
           Jwts.parser()
