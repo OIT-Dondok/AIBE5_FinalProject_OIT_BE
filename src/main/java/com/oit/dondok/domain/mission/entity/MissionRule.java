@@ -32,7 +32,7 @@ public class MissionRule extends AuditableTimeEntity {
   private Long id;
 
   @OneToOne(fetch = FetchType.LAZY, optional = false)
-  @JoinColumn(name = "crew_id", nullable = false, unique = true)
+  @JoinColumn(name = "crew_id", nullable = false)
   private Crew crew;
 
   @Enumerated(EnumType.STRING)
@@ -40,6 +40,6 @@ public class MissionRule extends AuditableTimeEntity {
   private MissionFrequencyType frequencyType;
 
   @Enumerated(EnumType.STRING)
-  @Column(name = "daily_settlement_type", nullable = false, length = 1)
+  @Column(name = "daily_settlement_type", nullable = false, columnDefinition = "char(1)")
   private DailySettlementType dailySettlementType;
 }

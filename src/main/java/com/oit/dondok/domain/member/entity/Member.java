@@ -43,7 +43,7 @@ public class Member extends AuditableTimeEntity {
   @Column(name = "password_hash")
   private String passwordHash;
 
-  @Column(name = "nickname", nullable = false, length = 10)
+  @Column(name = "nickname", nullable = false, length = 50)
   private String nickname;
 
   @Column(name = "profile_image_s3_key", length = 255)
