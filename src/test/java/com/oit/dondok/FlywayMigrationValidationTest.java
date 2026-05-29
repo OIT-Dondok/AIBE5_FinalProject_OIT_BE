@@ -6,16 +6,14 @@ import org.springframework.test.context.TestPropertySource;
 
 @IntegrationTest
 @Tag("flyway")
-@TestPropertySource(properties = {
-        "spring.flyway.enabled=true",
-        "spring.jpa.hibernate.ddl-auto=validate"
-})
+@TestPropertySource(
+    properties = {"spring.flyway.enabled=true", "spring.jpa.hibernate.ddl-auto=validate"})
 public class FlywayMigrationValidationTest {
 
-    @Test
-    void flyway_migration_matches_entity_schema() {
-        // 빈 바디: context 로딩 성공 자체가 검증:
-        // 1) Flyway: V1__init_shcema.sql 실행 성공
-        // 2) Hibernate validate: entity 필드와 실제 MySQL 컬럼 일치 확인
-    }
+  @Test
+  void flyway_migration_matches_entity_schema() {
+    // 빈 바디: context 로딩 성공 자체가 검증:
+    // 1) Flyway: V1__init_shcema.sql 실행 성공
+    // 2) Hibernate validate: entity 필드와 실제 MySQL 컬럼 일치 확인
+  }
 }
