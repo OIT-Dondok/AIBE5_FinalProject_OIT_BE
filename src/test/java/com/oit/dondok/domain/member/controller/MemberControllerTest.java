@@ -107,4 +107,30 @@ class MemberControllerTest {
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
   }
+
+  @Test
+  void signupFailWhenEmailHasNoTopLevelDomain() throws Exception {
+    SignupRequest request = new SignupRequest("user@localhost", "password1234", "돈독러");
+
+    mockMvc
+        .perform(
+            post("/api/auth/signup")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
+  }
+
+  @Test
+  void signupFailWhenNicknameHasLeadingOrTrailingWhitespace() throws Exception {
+    SignupRequest request = new SignupRequest("user@example.com", "password1234", " 돈독러 ");
+
+    mockMvc
+        .perform(
+            post("/api/auth/signup")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
+  }
 }

@@ -20,12 +20,15 @@ public class MemberService {
   private final MemberRepository memberRepository;
   private final PasswordEncoder passwordEncoder;
 
+  private static final int MIN_NICKNAME_LENGTH = 2;
+  private static final int MAX_NICKNAME_LENGTH = 10;
+
   @Transactional
   public Member signup(String email, String password, String nickname) {
     email = email.trim().toLowerCase(Locale.ROOT);
     nickname = nickname.trim();
 
-    if (nickname.length() < 2 || nickname.length() > 11) {
+    if (nickname.length() < MIN_NICKNAME_LENGTH || nickname.length() > MAX_NICKNAME_LENGTH) {
       throw new CustomException(GlobalErrorCode.INVALID_INPUT);
     }
 
