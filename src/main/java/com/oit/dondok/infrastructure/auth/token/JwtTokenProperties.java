@@ -1,4 +1,4 @@
-package com.oit.dondok.domain.auth.service;
+package com.oit.dondok.infrastructure.auth.token;
 
 import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
