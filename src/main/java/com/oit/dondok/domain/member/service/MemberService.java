@@ -25,7 +25,7 @@ public class MemberService {
     email = email.trim().toLowerCase(Locale.ROOT);
     nickname = nickname.trim();
 
-    if (nickname.length() < 2 || nickname.length() > 50) {
+    if (nickname.length() < 2 || nickname.length() > 11) {
       throw new CustomException(GlobalErrorCode.INVALID_INPUT);
     }
 
