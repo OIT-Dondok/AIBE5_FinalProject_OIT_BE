@@ -24,7 +24,13 @@ public class MemberController {
   public ResponseEntity<SignupResponse> signup(@Valid @RequestBody SignupRequest request) {
     Member member = memberService.signup(request.email(), request.password(), request.nickname());
 
-    SignupResponse response = SignupResponse.from(member);
+    SignupResponse response =
+        SignupResponse.of(
+            member.getUuid(),
+            member.getEmail(),
+            member.getNickname(),
+            member.getStatus(),
+            member.getCreatedAt());
 
     return ResponseEntity.status(HttpStatus.CREATED).body(response);
   }
