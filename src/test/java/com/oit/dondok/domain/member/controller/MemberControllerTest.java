@@ -1,6 +1,5 @@
 package com.oit.dondok.domain.member.controller;
 
-import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -46,7 +45,6 @@ class MemberControllerTest {
             UUID.fromString("018f4fd2-6d7a-7a41-9f58-6d07f5c3c901"),
             "user@example.com",
             "돈독러",
-            null,
             MemberStatus.ACTIVE,
             LocalDateTime.parse("2026-05-07T09:00:00"));
 
@@ -61,7 +59,6 @@ class MemberControllerTest {
         .andExpect(jsonPath("$.member_uuid").value("018f4fd2-6d7a-7a41-9f58-6d07f5c3c901"))
         .andExpect(jsonPath("$.email").value("user@example.com"))
         .andExpect(jsonPath("$.nickname").value("돈독러"))
-        .andExpect(jsonPath("$.profile_image_s3_key").value(nullValue()))
         .andExpect(jsonPath("$.status").value("ACTIVE"))
         .andExpect(jsonPath("$.created_at").value("2026-05-07T09:00:00"));
   }
