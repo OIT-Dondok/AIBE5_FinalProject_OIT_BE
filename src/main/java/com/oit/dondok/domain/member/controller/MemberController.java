@@ -1,0 +1,25 @@
+package com.oit.dondok.domain.member.controller;
+
+import com.oit.dondok.domain.member.dto.request.SignupRequest;
+import com.oit.dondok.domain.member.dto.response.SignupResponse;
+import com.oit.dondok.domain.member.service.MemberService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/api/auth")
+public class MemberController {
+
+  private final MemberService memberService;
+
+  @PostMapping("/signup")
+  public ResponseEntity<SignupResponse> signup(@Valid @RequestBody SignupRequest request) {
+    SignupResponse response = memberService.signup(request);
+
+    return ResponseEntity.status(HttpStatus.CREATED).body(response);
+  }
+}

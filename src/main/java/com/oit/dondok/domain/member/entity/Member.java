@@ -33,16 +33,16 @@ public class Member {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  @Column(nullable = false, unique = true)
+  @Column(nullable = false)
   private UUID uuid;
 
-  @Column(nullable = false, unique = true)
+  @Column(nullable = false, length = 255)
   private String email;
 
   @Column(nullable = false)
   private String passwordHash;
 
-  @Column(nullable = false, unique = true, length = 50)
+  @Column(nullable = false, length = 50)
   private String nickname;
 
   private String profileImageS3Key;
@@ -59,4 +59,16 @@ public class Member {
 
   @Column(nullable = false)
   private LocalDateTime updatedAt;
+
+  public static Member create(String email, String passwordHash, String nickname) {
+    Member member = new Member();
+    member.uuid = UUID.randomUUID();
+    member.email = email;
+    member.passwordHash = passwordHash;
+    member.nickname = nickname;
+    member.status = MemberStatus.ACTIVE;
+    member.createdAt = LocalDateTime.now();
+    member.updatedAt = LocalDateTime.now();
+    return member;
+  }
 }
