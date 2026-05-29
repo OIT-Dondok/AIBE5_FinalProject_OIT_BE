@@ -2,16 +2,17 @@ package com.oit.dondok.domain.member.controller;
 
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.oit.dondok.domain.member.dto.request.SignupRequest;
+import com.oit.dondok.domain.member.entity.Member;
 import com.oit.dondok.domain.member.entity.MemberStatus;
 import com.oit.dondok.domain.member.exception.MemberErrorCode;
 import com.oit.dondok.domain.member.service.MemberService;
-import com.oit.dondok.domain.member.service.SignupResult;
 import com.oit.dondok.global.exception.CustomException;
 import com.oit.dondok.global.exception.GlobalExceptionHandler;
 import java.time.LocalDateTime;
@@ -40,15 +41,14 @@ class MemberControllerTest {
   void signupSuccess() throws Exception {
     SignupRequest request = new SignupRequest("user@example.com", "password1234", "돈독러");
 
-    SignupResult result =
-        new SignupResult(
-            UUID.fromString("018f4fd2-6d7a-7a41-9f58-6d07f5c3c901"),
-            "user@example.com",
-            "돈독러",
-            MemberStatus.ACTIVE,
-            LocalDateTime.parse("2026-05-07T09:00:00"));
+    Member member = mock(Member.class);
+    given(member.getUuid()).willReturn(UUID.fromString("018f4fd2-6d7a-7a41-9f58-6d07f5c3c901"));
+    given(member.getEmail()).willReturn("user@example.com");
+    given(member.getNickname()).willReturn("돈독러");
+    given(member.getStatus()).willReturn(MemberStatus.ACTIVE);
+    given(member.getCreatedAt()).willReturn(LocalDateTime.parse("2026-05-07T09:00:00"));
 
-    given(memberService.signup(anyString(), anyString(), anyString())).willReturn(result);
+    given(memberService.signup(anyString(), anyString(), anyString())).willReturn(member);
 
     mockMvc
         .perform(
