@@ -9,6 +9,7 @@ import com.oit.dondok.global.exception.CustomException;
 import com.oit.dondok.global.exception.GlobalErrorCode;
 import java.util.Locale;
 import lombok.RequiredArgsConstructor;
+import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -46,14 +47,24 @@ public class MemberService {
       Member savedMember = memberRepository.saveAndFlush(member);
       return SignupResponse.from(savedMember);
     } catch (DataIntegrityViolationException exception) {
-      String message = exception.getMostSpecificCause().getMessage();
+      Throwable cause = exception;
 
-      if (message != null && message.contains("uk_member_email")) {
-        throw new CustomException(MemberErrorCode.EMAIL_ALREADY_EXISTS);
-      }
+      while (cause != null) {
+        if (cause instanceof ConstraintViolationException constraintException) {
+          String constraintName = constraintException.getConstraintName();
 
-      if (message != null && message.contains("uk_member_nickname")) {
-        throw new CustomException(MemberErrorCode.NICKNAME_ALREADY_EXISTS);
+          if ("uk_member_email".equalsIgnoreCase(constraintName)) {
+            throw new CustomException(MemberErrorCode.EMAIL_ALREADY_EXISTS, exception);
+          }
+
+          if ("uk_member_nickname".equalsIgnoreCase(constraintName)) {
+            throw new CustomException(MemberErrorCode.NICKNAME_ALREADY_EXISTS, exception);
+          }
+
+          break;
+        }
+
+        cause = cause.getCause();
       }
 
       throw exception;
