@@ -90,7 +90,7 @@
       "recognized_success_count": 90,
       "recognized_dates_count": 30,
       "excluded_success_count": 2,
-      "share_ratio": "0.23076923",
+      "share_ratio": "0.230769",
       "base_refund_amount": 115384,
       "remainder_bonus_amount": 4,
       "refund_amount": 115388,
