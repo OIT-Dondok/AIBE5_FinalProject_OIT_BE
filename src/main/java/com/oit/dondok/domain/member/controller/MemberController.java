@@ -22,11 +22,7 @@ public class MemberController {
 
   @PostMapping("/signup")
   public ResponseEntity<SignupResponse> signup(@Valid @RequestBody SignupRequest request) {
-    Member member =
-            memberService.signup(
-                    request.email(),
-                    request.password(),
-                    request.nickname());
+    Member member = memberService.signup(request.email(), request.password(), request.nickname());
 
     SignupResponse response = SignupResponse.from(member);
 

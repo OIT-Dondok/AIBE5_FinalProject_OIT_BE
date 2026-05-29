@@ -1,7 +1,5 @@
 package com.oit.dondok.domain.member.service;
 
-import com.oit.dondok.domain.member.dto.request.SignupRequest;
-import com.oit.dondok.domain.member.dto.response.SignupResponse;
 import com.oit.dondok.domain.member.entity.Member;
 import com.oit.dondok.domain.member.exception.MemberErrorCode;
 import com.oit.dondok.domain.member.repository.MemberRepository;

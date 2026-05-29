@@ -38,43 +38,43 @@ class ArchitectureRulesTest {
   private static final String DATA = "lombok.Data";
   private static final String GENERATED = "lombok.Generated";
   private static final String TRANSACTIONAL =
-          "org.springframework.transaction.annotation.Transactional";
+      "org.springframework.transaction.annotation.Transactional";
   private static final Pattern SNAKE_CASE = Pattern.compile("^[a-z][a-z0-9]*(_[a-z0-9]+)*$");
   private static final Pattern DOMAIN_REQUEST_DTO_PACKAGE =
-          Pattern.compile(".*\\.domain\\.[^.]+\\.dto\\.request(\\..*)?");
+      Pattern.compile(".*\\.domain\\.[^.]+\\.dto\\.request(\\..*)?");
   private static final Pattern DOMAIN_RESPONSE_DTO_PACKAGE =
-          Pattern.compile(".*\\.domain\\.[^.]+\\.dto\\.response(\\..*)?");
+      Pattern.compile(".*\\.domain\\.[^.]+\\.dto\\.response(\\..*)?");
   private static final Set<String> ALLOWED_DOMAIN_LAYERS =
-          Set.of("controller", "service", "repository", "entity", "dto", "exception");
+      Set.of("controller", "service", "repository", "entity", "dto", "exception");
   private static final List<String> MAPPING_ANNOTATIONS =
-          List.of(
-                  "org.springframework.web.bind.annotation.RequestMapping",
-                  "org.springframework.web.bind.annotation.GetMapping",
-                  "org.springframework.web.bind.annotation.PostMapping",
-                  "org.springframework.web.bind.annotation.PutMapping",
-                  "org.springframework.web.bind.annotation.PatchMapping",
-                  "org.springframework.web.bind.annotation.DeleteMapping");
+      List.of(
+          "org.springframework.web.bind.annotation.RequestMapping",
+          "org.springframework.web.bind.annotation.GetMapping",
+          "org.springframework.web.bind.annotation.PostMapping",
+          "org.springframework.web.bind.annotation.PutMapping",
+          "org.springframework.web.bind.annotation.PatchMapping",
+          "org.springframework.web.bind.annotation.DeleteMapping");
   private static final List<String> MONEY_TERMS =
-          List.of("amount", "price", "fee", "cost", "balance", "settlement");
+      List.of("amount", "price", "fee", "cost", "balance", "settlement");
   private static final List<String> QUERY_METHOD_PREFIXES =
-          List.of("find", "get", "read", "search", "count", "exists");
+      List.of("find", "get", "read", "search", "count", "exists");
   private static final List<String> WRITE_INTENT_QUERY_MARKERS =
-          List.of("orCreate", "andCreate", "orUpdate", "andUpdate", "orDelete", "andDelete");
+      List.of("orCreate", "andCreate", "orUpdate", "andUpdate", "orDelete", "andDelete");
 
   private final JavaClasses productionClasses =
-          new ClassFileImporter()
-                  .withImportOption(new ImportOption.DoNotIncludeTests())
-                  .importPackages("com.oit.dondok");
+      new ClassFileImporter()
+          .withImportOption(new ImportOption.DoNotIncludeTests())
+          .importPackages("com.oit.dondok");
 
   @Test
   void controllersShouldNotDependOnRepositories() {
     ArchRule rule =
-            noClasses()
-                    .that()
-                    .haveSimpleNameEndingWith("Controller")
-                    .should()
-                    .dependOnClassesThat()
-                    .haveSimpleNameEndingWith("Repository");
+        noClasses()
+            .that()
+            .haveSimpleNameEndingWith("Controller")
+            .should()
+            .dependOnClassesThat()
+            .haveSimpleNameEndingWith("Repository");
 
     rule.allowEmptyShould(true).check(productionClasses);
   }
@@ -82,17 +82,17 @@ class ArchitectureRulesTest {
   @Test
   void servicesShouldNotDependOnWebLayer() {
     ArchRule rule =
-            noClasses()
-                    .that()
-                    .haveSimpleNameEndingWith("Service")
-                    .should()
-                    .dependOnClassesThat()
-                    .resideInAnyPackage(
-                            "..controller..",
-                            "..web..",
-                            "org.springframework.web..",
-                            "jakarta.servlet..",
-                            "javax.servlet..");
+        noClasses()
+            .that()
+            .haveSimpleNameEndingWith("Service")
+            .should()
+            .dependOnClassesThat()
+            .resideInAnyPackage(
+                "..controller..",
+                "..web..",
+                "org.springframework.web..",
+                "jakarta.servlet..",
+                "javax.servlet..");
 
     rule.allowEmptyShould(true).check(productionClasses);
   }
@@ -100,12 +100,12 @@ class ArchitectureRulesTest {
   @Test
   void repositoriesShouldNotDependOnServices() {
     ArchRule rule =
-            noClasses()
-                    .that()
-                    .haveSimpleNameEndingWith("Repository")
-                    .should()
-                    .dependOnClassesThat()
-                    .haveSimpleNameEndingWith("Service");
+        noClasses()
+            .that()
+            .haveSimpleNameEndingWith("Repository")
+            .should()
+            .dependOnClassesThat()
+            .haveSimpleNameEndingWith("Service");
 
     rule.allowEmptyShould(true).check(productionClasses);
   }
@@ -113,11 +113,11 @@ class ArchitectureRulesTest {
   @Test
   void entitiesShouldLiveUnderDomainPackage() {
     ArchRule rule =
-            classes()
-                    .that()
-                    .areAnnotatedWith("jakarta.persistence.Entity")
-                    .should()
-                    .resideInAPackage("..domain..entity..");
+        classes()
+            .that()
+            .areAnnotatedWith("jakarta.persistence.Entity")
+            .should()
+            .resideInAPackage("..domain..entity..");
 
     rule.allowEmptyShould(true).check(productionClasses);
   }
@@ -125,21 +125,21 @@ class ArchitectureRulesTest {
   @Test
   void domainShouldNotDependOnWebConfigOrSecurityLayers() {
     ArchRule rule =
-            noClasses()
-                    .that()
-                    .resideInAPackage("..domain..")
-                    .should()
-                    .dependOnClassesThat()
-                    .resideInAnyPackage(
-                            "..controller..",
-                            "..config..",
-                            "..security..",
-                            "..web..",
-                            "..dto.request..",
-                            "..dto.response..",
-                            "org.springframework.web..",
-                            "jakarta.servlet..",
-                            "javax.servlet..");
+        noClasses()
+            .that()
+            .resideInAPackage("..domain..")
+            .should()
+            .dependOnClassesThat()
+            .resideInAnyPackage(
+                "..controller..",
+                "..config..",
+                "..security..",
+                "..web..",
+                "..dto.request..",
+                "..dto.response..",
+                "org.springframework.web..",
+                "jakarta.servlet..",
+                "javax.servlet..");
 
     rule.allowEmptyShould(true).check(productionClasses);
   }
@@ -147,7 +147,7 @@ class ArchitectureRulesTest {
   @Test
   void domainClassesShouldUseDocumentedLayerPackages() {
     ArchRule rule =
-            classes().that().resideInAPackage("..domain..").should(useDocumentedDomainLayerPackages());
+        classes().that().resideInAPackage("..domain..").should(useDocumentedDomainLayerPackages());
 
     rule.allowEmptyShould(true).check(productionClasses);
   }
@@ -155,32 +155,32 @@ class ArchitectureRulesTest {
   @Test
   void springComponentsShouldFollowLayerPackageAndNamingConventions() {
     ArchRule controllers =
-            classes()
-                    .that()
-                    .areAnnotatedWith("org.springframework.web.bind.annotation.RestController")
-                    .or()
-                    .areAnnotatedWith("org.springframework.stereotype.Controller")
-                    .should()
-                    .resideInAPackage("..controller..")
-                    .andShould()
-                    .haveSimpleNameEndingWith("Controller");
+        classes()
+            .that()
+            .areAnnotatedWith("org.springframework.web.bind.annotation.RestController")
+            .or()
+            .areAnnotatedWith("org.springframework.stereotype.Controller")
+            .should()
+            .resideInAPackage("..controller..")
+            .andShould()
+            .haveSimpleNameEndingWith("Controller");
 
     ArchRule services =
-            classes()
-                    .that()
-                    .areAnnotatedWith("org.springframework.stereotype.Service")
-                    .should()
-                    .resideInAPackage("..service..")
-                    .andShould()
-                    .haveSimpleNameEndingWith("Service");
+        classes()
+            .that()
+            .areAnnotatedWith("org.springframework.stereotype.Service")
+            .should()
+            .resideInAPackage("..service..")
+            .andShould()
+            .haveSimpleNameEndingWith("Service");
 
     ArchRule repositories =
-            classes()
-                    .that(repositoryClasses())
-                    .should()
-                    .resideInAPackage("..repository..")
-                    .andShould()
-                    .haveSimpleNameEndingWith("Repository");
+        classes()
+            .that(repositoryClasses())
+            .should()
+            .resideInAPackage("..repository..")
+            .andShould()
+            .haveSimpleNameEndingWith("Repository");
 
     controllers.allowEmptyShould(true).check(productionClasses);
     services.allowEmptyShould(true).check(productionClasses);
@@ -190,10 +190,10 @@ class ArchitectureRulesTest {
   @Test
   void dtoClassesShouldFollowRequestAndResponsePackageNamingConventions() {
     ArchRule requestPackages =
-            classes().that(domainRequestDtoClasses()).should().haveSimpleNameEndingWith("Request");
+        classes().that(domainRequestDtoClasses()).should().haveSimpleNameEndingWith("Request");
 
     ArchRule responsePackages =
-            classes().that(domainResponseDtoClasses()).should().haveSimpleNameEndingWith("Response");
+        classes().that(domainResponseDtoClasses()).should().haveSimpleNameEndingWith("Response");
 
     requestPackages.allowEmptyShould(true).check(productionClasses);
     responsePackages.allowEmptyShould(true).check(productionClasses);
@@ -202,12 +202,12 @@ class ArchitectureRulesTest {
   @Test
   void controllersShouldNotDependOnEntities() {
     ArchRule rule =
-            noClasses()
-                    .that()
-                    .haveSimpleNameEndingWith("Controller")
-                    .should()
-                    .dependOnClassesThat()
-                    .areAnnotatedWith(ENTITY);
+        noClasses()
+            .that()
+            .haveSimpleNameEndingWith("Controller")
+            .should()
+            .dependOnClassesThat()
+            .areAnnotatedWith(ENTITY);
 
     rule.allowEmptyShould(true).check(productionClasses);
   }
@@ -215,10 +215,10 @@ class ArchitectureRulesTest {
   @Test
   void requestMappingPathsShouldUseLowercaseCharactersOutsidePathVariables() {
     ArchRule rule =
-            classes()
-                    .that()
-                    .haveSimpleNameEndingWith("Controller")
-                    .should(useLowercaseRequestMappingPaths());
+        classes()
+            .that()
+            .haveSimpleNameEndingWith("Controller")
+            .should(useLowercaseRequestMappingPaths());
 
     rule.allowEmptyShould(true).check(productionClasses);
   }
@@ -233,21 +233,21 @@ class ArchitectureRulesTest {
   @Test
   void entitiesShouldNotUseBuilderAndShouldPreferNonPublicConstructors() {
     ArchRule noEntityBuilders =
-            noClasses()
-                    .that()
-                    .areAnnotatedWith(ENTITY)
-                    .or()
-                    .resideInAPackage("..domain..entity..")
-                    .should()
-                    .beAnnotatedWith(BUILDER);
+        noClasses()
+            .that()
+            .areAnnotatedWith(ENTITY)
+            .or()
+            .resideInAPackage("..domain..entity..")
+            .should()
+            .beAnnotatedWith(BUILDER);
 
     ArchRule noPublicEntityConstructors =
-            constructors()
-                    .that()
-                    .areDeclaredInClassesThat()
-                    .areAnnotatedWith(ENTITY)
-                    .should()
-                    .notBePublic();
+        constructors()
+            .that()
+            .areDeclaredInClassesThat()
+            .areAnnotatedWith(ENTITY)
+            .should()
+            .notBePublic();
 
     noEntityBuilders.allowEmptyShould(true).check(productionClasses);
     noPublicEntityConstructors.allowEmptyShould(true).check(productionClasses);
@@ -256,10 +256,10 @@ class ArchitectureRulesTest {
   @Test
   void entityPublicInstanceMethodsShouldBeAccessorsOnly() {
     ArchRule rule =
-            classes()
-                    .that()
-                    .areAnnotatedWith(ENTITY)
-                    .should(declareOnlyAccessorPublicInstanceMethods());
+        classes()
+            .that()
+            .areAnnotatedWith(ENTITY)
+            .should(declareOnlyAccessorPublicInstanceMethods());
 
     rule.allowEmptyShould(true).check(productionClasses);
   }
@@ -267,7 +267,7 @@ class ArchitectureRulesTest {
   @Test
   void databaseMappingNamesShouldUseSnakeCaseWhenExplicitlyDeclared() {
     ArchRule rule =
-            classes().that().areAnnotatedWith(ENTITY).should(useSnakeCaseTableAndColumnNames());
+        classes().that().areAnnotatedWith(ENTITY).should(useSnakeCaseTableAndColumnNames());
 
     rule.allowEmptyShould(true).check(productionClasses);
   }
@@ -275,10 +275,10 @@ class ArchitectureRulesTest {
   @Test
   void serviceQueryMethodsShouldBeReadOnlyTransactional() {
     ArchRule rule =
-            classes()
-                    .that()
-                    .haveSimpleNameEndingWith("Service")
-                    .should(declareReadOnlyTransactionsForQueryMethods());
+        classes()
+            .that()
+            .haveSimpleNameEndingWith("Service")
+            .should(declareReadOnlyTransactionsForQueryMethods());
 
     rule.allowEmptyShould(true).check(productionClasses);
   }
@@ -295,7 +295,7 @@ class ArchitectureRulesTest {
       @Override
       public boolean test(JavaClass javaClass) {
         return javaClass.isAnnotatedWith("org.springframework.stereotype.Repository")
-                || javaClass.isAssignableTo("org.springframework.data.repository.Repository");
+            || javaClass.isAssignableTo("org.springframework.data.repository.Repository");
       }
     };
   }
@@ -305,7 +305,7 @@ class ArchitectureRulesTest {
       @Override
       public boolean test(JavaClass javaClass) {
         return isTopLevelSourceClass(javaClass)
-                && DOMAIN_REQUEST_DTO_PACKAGE.matcher(javaClass.getPackageName()).matches();
+            && DOMAIN_REQUEST_DTO_PACKAGE.matcher(javaClass.getPackageName()).matches();
       }
     };
   }
@@ -315,7 +315,7 @@ class ArchitectureRulesTest {
       @Override
       public boolean test(JavaClass javaClass) {
         return isTopLevelSourceClass(javaClass)
-                && DOMAIN_RESPONSE_DTO_PACKAGE.matcher(javaClass.getPackageName()).matches();
+            && DOMAIN_RESPONSE_DTO_PACKAGE.matcher(javaClass.getPackageName()).matches();
       }
     };
   }
@@ -339,11 +339,11 @@ class ArchitectureRulesTest {
         boolean valid = parts.length >= 2 && ALLOWED_DOMAIN_LAYERS.contains(parts[1]);
         if (!valid) {
           events.add(
-                  SimpleConditionEvent.violated(
-                          javaClass,
-                          javaClass.getName()
-                                  + " should reside under domain/{domain}/"
-                                  + ALLOWED_DOMAIN_LAYERS));
+              SimpleConditionEvent.violated(
+                  javaClass,
+                  javaClass.getName()
+                      + " should reside under domain/{domain}/"
+                      + ALLOWED_DOMAIN_LAYERS));
         }
       }
     };
@@ -355,20 +355,20 @@ class ArchitectureRulesTest {
       public void check(JavaClass javaClass, ConditionEvents events) {
         checkMappingAnnotations(javaClass, javaClass.getName(), javaClass.getAnnotations(), events);
         javaClass
-                .getMethods()
-                .forEach(
-                        method ->
-                                checkMappingAnnotations(
-                                        method, method.getFullName(), method.getAnnotations(), events));
+            .getMethods()
+            .forEach(
+                method ->
+                    checkMappingAnnotations(
+                        method, method.getFullName(), method.getAnnotations(), events));
       }
     };
   }
 
   private static void checkMappingAnnotations(
-          Object owner,
-          String ownerName,
-          Set<? extends JavaAnnotation<?>> annotations,
-          ConditionEvents events) {
+      Object owner,
+      String ownerName,
+      Set<? extends JavaAnnotation<?>> annotations,
+      ConditionEvents events) {
     for (JavaAnnotation<?> annotation : annotations) {
       if (!MAPPING_ANNOTATIONS.contains(annotation.getRawType().getName())) {
         continue;
@@ -378,8 +378,8 @@ class ArchitectureRulesTest {
         String pathWithoutVariables = path.replaceAll("\\{[^}]*}", "");
         if (!pathWithoutVariables.equals(pathWithoutVariables.toLowerCase(Locale.ROOT))) {
           events.add(
-                  SimpleConditionEvent.violated(
-                          owner, ownerName + " has non-lowercase request path " + path));
+              SimpleConditionEvent.violated(
+                  owner, ownerName + " has non-lowercase request path " + path));
         }
       }
     }
@@ -391,16 +391,16 @@ class ArchitectureRulesTest {
       public void check(JavaClass javaClass, ConditionEvents events) {
         for (JavaMethod method : javaClass.getMethods()) {
           if (!method.getModifiers().contains(JavaModifier.PUBLIC)
-                  || method.getModifiers().contains(JavaModifier.STATIC)
-                  || isAccessor(method)) {
+              || method.getModifiers().contains(JavaModifier.STATIC)
+              || isAccessor(method)) {
             continue;
           }
 
           events.add(
-                  SimpleConditionEvent.violated(
-                          method,
-                          method.getFullName()
-                                  + " is a public entity instance method that is not an accessor"));
+              SimpleConditionEvent.violated(
+                  method,
+                  method.getFullName()
+                      + " is a public entity instance method that is not an accessor"));
         }
       }
     };
@@ -409,7 +409,7 @@ class ArchitectureRulesTest {
   private static boolean isAccessor(JavaMethod method) {
     String name = method.getName();
     return method.getRawParameterTypes().isEmpty()
-            && (name.startsWith("get") || name.startsWith("is"));
+        && (name.startsWith("get") || name.startsWith("is"));
   }
 
   private static ArchCondition<JavaClass> useSnakeCaseTableAndColumnNames() {
@@ -417,12 +417,12 @@ class ArchitectureRulesTest {
       @Override
       public void check(JavaClass javaClass, ConditionEvents events) {
         javaClass
-                .tryGetAnnotationOfType(TABLE)
-                .ifPresent(
-                        table ->
-                                annotationValues(table, "name")
-                                        .forEach(
-                                                tableName -> checkSnakeCase(javaClass, tableName, "table", events)));
+            .tryGetAnnotationOfType(TABLE)
+            .ifPresent(
+                table ->
+                    annotationValues(table, "name")
+                        .forEach(
+                            tableName -> checkSnakeCase(javaClass, tableName, "table", events)));
 
         for (JavaField field : javaClass.getFields()) {
           Optional<JavaAnnotation<JavaField>> column = field.tryGetAnnotationOfType(COLUMN);
@@ -438,22 +438,22 @@ class ArchitectureRulesTest {
   }
 
   private static void checkSnakeCase(
-          JavaMember member, String value, String mappingType, ConditionEvents events) {
+      JavaMember member, String value, String mappingType, ConditionEvents events) {
     if (!value.isBlank() && !SNAKE_CASE.matcher(value).matches()) {
       events.add(
-              SimpleConditionEvent.violated(
-                      member,
-                      member.getFullName() + " has non-snake_case " + mappingType + " name " + value));
+          SimpleConditionEvent.violated(
+              member,
+              member.getFullName() + " has non-snake_case " + mappingType + " name " + value));
     }
   }
 
   private static void checkSnakeCase(
-          JavaClass javaClass, String value, String mappingType, ConditionEvents events) {
+      JavaClass javaClass, String value, String mappingType, ConditionEvents events) {
     if (!value.isBlank() && !SNAKE_CASE.matcher(value).matches()) {
       events.add(
-              SimpleConditionEvent.violated(
-                      javaClass,
-                      javaClass.getName() + " has non-snake_case " + mappingType + " name " + value));
+          SimpleConditionEvent.violated(
+              javaClass,
+              javaClass.getName() + " has non-snake_case " + mappingType + " name " + value));
     }
   }
 
@@ -463,15 +463,15 @@ class ArchitectureRulesTest {
       public void check(JavaClass javaClass, ConditionEvents events) {
         for (JavaMethod method : javaClass.getMethods()) {
           if (method.getModifiers().contains(JavaModifier.STATIC)
-                  || !method.getModifiers().contains(JavaModifier.PUBLIC)
-                  || !isQueryMethod(method)) {
+              || !method.getModifiers().contains(JavaModifier.PUBLIC)
+              || !isQueryMethod(method)) {
             continue;
           }
           if (!hasReadOnlyTransactional(method) && !hasReadOnlyTransactional(javaClass)) {
             events.add(
-                    SimpleConditionEvent.violated(
-                            method,
-                            method.getFullName() + " should declare @Transactional(readOnly = true)"));
+                SimpleConditionEvent.violated(
+                    method,
+                    method.getFullName() + " should declare @Transactional(readOnly = true)"));
           }
         }
       }
@@ -482,25 +482,25 @@ class ArchitectureRulesTest {
     String name = method.getName();
     String lowerName = name.toLowerCase();
     return QUERY_METHOD_PREFIXES.stream().anyMatch(name::startsWith)
-            && WRITE_INTENT_QUERY_MARKERS.stream()
+        && WRITE_INTENT_QUERY_MARKERS.stream()
             .map(String::toLowerCase)
             .noneMatch(lowerName::contains);
   }
 
   private static boolean hasReadOnlyTransactional(JavaMethod method) {
     return method
-            .tryGetAnnotationOfType(TRANSACTIONAL)
-            .flatMap(annotation -> annotation.get("readOnly"))
-            .filter(Boolean.TRUE::equals)
-            .isPresent();
+        .tryGetAnnotationOfType(TRANSACTIONAL)
+        .flatMap(annotation -> annotation.get("readOnly"))
+        .filter(Boolean.TRUE::equals)
+        .isPresent();
   }
 
   private static boolean hasReadOnlyTransactional(JavaClass javaClass) {
     return javaClass
-            .tryGetAnnotationOfType(TRANSACTIONAL)
-            .flatMap(annotation -> annotation.get("readOnly"))
-            .filter(Boolean.TRUE::equals)
-            .isPresent();
+        .tryGetAnnotationOfType(TRANSACTIONAL)
+        .flatMap(annotation -> annotation.get("readOnly"))
+        .filter(Boolean.TRUE::equals)
+        .isPresent();
   }
 
   private static ArchCondition<JavaClass> notUseFloatingPointTypesForMoneyLikeMembers() {
@@ -510,18 +510,18 @@ class ArchitectureRulesTest {
         for (JavaField field : javaClass.getFields()) {
           if (isMoneyLike(field.getName()) && isFloatingPoint(field.getRawType())) {
             events.add(
-                    SimpleConditionEvent.violated(
-                            field,
-                            field.getFullName() + " should use BigDecimal instead of floating point"));
+                SimpleConditionEvent.violated(
+                    field,
+                    field.getFullName() + " should use BigDecimal instead of floating point"));
           }
         }
 
         for (JavaMethod method : javaClass.getMethods()) {
           if (isMoneyLike(method.getName()) && isFloatingPoint(method.getRawReturnType())) {
             events.add(
-                    SimpleConditionEvent.violated(
-                            method,
-                            method.getFullName() + " should return BigDecimal instead of floating point"));
+                SimpleConditionEvent.violated(
+                    method,
+                    method.getFullName() + " should return BigDecimal instead of floating point"));
           }
           checkFloatingPointParameters(method, events);
         }
@@ -540,9 +540,9 @@ class ArchitectureRulesTest {
     for (JavaClass parameterType : codeUnit.getRawParameterTypes()) {
       if (isFloatingPoint(parameterType)) {
         events.add(
-                SimpleConditionEvent.violated(
-                        codeUnit,
-                        codeUnit.getFullName() + " should use BigDecimal instead of floating point"));
+            SimpleConditionEvent.violated(
+                codeUnit,
+                codeUnit.getFullName() + " should use BigDecimal instead of floating point"));
       }
     }
   }
@@ -554,18 +554,18 @@ class ArchitectureRulesTest {
 
   private static boolean isFloatingPoint(JavaClass type) {
     return type.isEquivalentTo(double.class)
-            || type.isEquivalentTo(Double.class)
-            || type.isEquivalentTo(float.class)
-            || type.isEquivalentTo(Float.class);
+        || type.isEquivalentTo(Double.class)
+        || type.isEquivalentTo(float.class)
+        || type.isEquivalentTo(Float.class);
   }
 
   private static List<String> annotationValues(JavaAnnotation<?> annotation, String... names) {
     return List.of(names).stream()
-            .flatMap(name -> annotation.get(name).stream())
-            .flatMap(ArchitectureRulesTest::flattenAnnotationValue)
-            .map(String::trim)
-            .filter(value -> !value.isEmpty())
-            .toList();
+        .flatMap(name -> annotation.get(name).stream())
+        .flatMap(ArchitectureRulesTest::flattenAnnotationValue)
+        .map(String::trim)
+        .filter(value -> !value.isEmpty())
+        .toList();
   }
 
   private static java.util.stream.Stream<String> flattenAnnotationValue(Object value) {
@@ -577,8 +577,8 @@ class ArchitectureRulesTest {
     }
     if (value != null && value.getClass().isArray()) {
       return java.util.stream.IntStream.range(0, Array.getLength(value))
-              .mapToObj(index -> Array.get(value, index))
-              .flatMap(ArchitectureRulesTest::flattenAnnotationValue);
+          .mapToObj(index -> Array.get(value, index))
+          .flatMap(ArchitectureRulesTest::flattenAnnotationValue);
     }
     return java.util.stream.Stream.empty();
   }
