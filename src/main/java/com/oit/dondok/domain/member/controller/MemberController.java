@@ -2,8 +2,8 @@ package com.oit.dondok.domain.member.controller;
 
 import com.oit.dondok.domain.member.dto.request.SignupRequest;
 import com.oit.dondok.domain.member.dto.response.SignupResponse;
-import com.oit.dondok.domain.member.entity.Member;
 import com.oit.dondok.domain.member.service.MemberService;
+import com.oit.dondok.domain.member.service.SignupResult;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -22,15 +22,10 @@ public class MemberController {
 
   @PostMapping("/signup")
   public ResponseEntity<SignupResponse> signup(@Valid @RequestBody SignupRequest request) {
-    Member member = memberService.signup(request.email(), request.password(), request.nickname());
+    SignupResult result =
+        memberService.signup(request.email(), request.password(), request.nickname());
 
-    SignupResponse response =
-        SignupResponse.of(
-            member.getUuid(),
-            member.getEmail(),
-            member.getNickname(),
-            member.getStatus(),
-            member.getCreatedAt());
+    SignupResponse response = SignupResponse.from(result);
 
     return ResponseEntity.status(HttpStatus.CREATED).body(response);
   }

@@ -21,7 +21,7 @@ public class MemberService {
   private final PasswordEncoder passwordEncoder;
 
   @Transactional
-  public Member signup(String email, String password, String nickname) {
+  public SignupResult signup(String email, String password, String nickname) {
     email = email.trim().toLowerCase(Locale.ROOT);
     nickname = nickname.trim();
 
@@ -42,7 +42,8 @@ public class MemberService {
     Member member = Member.create(email, passwordHash, nickname);
 
     try {
-      return memberRepository.saveAndFlush(member);
+      Member savedMember = memberRepository.saveAndFlush(member);
+      return SignupResult.from(savedMember);
     } catch (DataIntegrityViolationException exception) {
       Throwable cause = exception;
 
