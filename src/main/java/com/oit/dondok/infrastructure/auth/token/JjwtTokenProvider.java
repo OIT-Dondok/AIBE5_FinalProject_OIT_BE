@@ -95,7 +95,7 @@ public class JjwtTokenProvider implements TokenProvider {
       validateRequiredClaims(subject, issuedAt, expiration, expectedTokenType);
 
       return new TokenPayload(
-          UUID.fromString(subject), tokenType, issuedAt.toInstant(), expiration.toInstant());
+          UUID.fromString(subject), issuedAt.toInstant(), expiration.toInstant());
     } catch (ExpiredJwtException exception) {
       throw expiredTokenException(expectedTokenType, exception);
     } catch (JwtException | IllegalArgumentException exception) {
