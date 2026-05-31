@@ -39,7 +39,7 @@ Set-Cookie: refreshToken={refreshToken}; Path=/; Max-Age=604800; HttpOnly; SameS
 
 - JWT `sub`는 `member.uuid`다. `email`이나 `member.id`를 subject로 사용하지 않는다.
 - refresh token은 `HttpOnly` + `Secure` + `SameSite` cookie로만 전달한다. response body, `localStorage`, `sessionStorage`, JS 접근 대상으로 노출하지 않는다.
-- 저장소 정책: 발급된 Refresh Token은 RDBMS(member_refresh_token 테이블)에 해시화하여 저장한다.
+- 저장소 정책: 발급된 Refresh Token은 서버측 저장소에 원문이 아닌 해시 형태로 저장하여 관리한다. (최종 저장소 구현체는 인프라 구성에 따라 결정된다.)
 
 ---
 
@@ -72,7 +72,7 @@ Set-Cookie: refreshToken={newRefreshToken}; Path=/; HttpOnly; Secure; SameSite=L
 **정책**
 
 - 재발급은 refresh cookie 기반이며, request body로 refresh token을 받지 않는다.
-- 갱신 (Rotation): 재발급 시 기존 DB 레코드의 토큰 해시값을 **새로 발급한 토큰의 해시값으로 업데이트(Update)**하여 일회성(Single-use)을 보장한다.
+- 갱신 (Rotation): 보안을 위해 재발급 시 서버에 저장된 기존 토큰 정보를 새로운 토큰 정보로 교체(Update)하여 일회성(Single-use)을 보장한다.
 - 새 refresh token도 `Set-Cookie`로만 재발급한다. token 값을 response body에 포함하지 않는다.
 
 
@@ -96,4 +96,8 @@ Set-Cookie: refreshToken=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax
 
 
 **정책**
-- 폐기 (Revoke): 로그아웃 시 DB(member_refresh_token)에서 해당 사용자의 Refresh Token 레코드를 즉시 삭제(Delete)하여 재사용을 방지한다.
+- 폐기 (Revoke): 로그아웃 시 서버에 저장된 해당 사용자의 Refresh Token 정보를 즉시 삭제/무효화하여 재사용을 방지한다.
+
+---
+**참고(Notes)**
+- 현재 리프레시 토큰은 RDBMS 기반으로 관리되나, 성능 및 세션 관리 효율화를 위해 향후 Redis-backed 저장소로 이관될 예정입니다.

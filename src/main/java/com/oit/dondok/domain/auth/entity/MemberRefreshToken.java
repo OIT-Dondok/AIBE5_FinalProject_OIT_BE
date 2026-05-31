@@ -18,6 +18,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+/** TODO: Redis-backed refresh session 이관 전까지 사용하는 임시 저장소입니다. 이관 시 해당 엔티티 및 관련 JPA 로직은 제거될 예정입니다. */
 @Getter
 @Entity
 @Table(
