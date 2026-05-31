@@ -74,6 +74,12 @@ class AuthControllerTest {
         .andExpect(
             header()
                 .string(
+                    HttpHeaders.CACHE_CONTROL, "no-store, no-cache, must-revalidate, max-age=0"))
+        .andExpect(header().string(HttpHeaders.PRAGMA, "no-cache"))
+        .andExpect(header().string(HttpHeaders.EXPIRES, "0"))
+        .andExpect(
+            header()
+                .string(
                     HttpHeaders.SET_COOKIE, org.hamcrest.Matchers.containsString("SameSite=Lax")));
   }
 

@@ -39,6 +39,9 @@ public class AuthController {
 
     return ResponseEntity.ok()
         .header(HttpHeaders.SET_COOKIE, refreshTokenCookie(result).toString())
+        .header(HttpHeaders.CACHE_CONTROL, "no-store, no-cache, must-revalidate, max-age=0")
+        .header(HttpHeaders.PRAGMA, "no-cache")
+        .header(HttpHeaders.EXPIRES, "0")
         .body(response);
   }
 

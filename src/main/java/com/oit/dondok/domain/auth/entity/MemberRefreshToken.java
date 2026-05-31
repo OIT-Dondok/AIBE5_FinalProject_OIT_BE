@@ -52,6 +52,18 @@ public class MemberRefreshToken extends CreatedTimeEntity {
   /** 원문 token 대신 해시된 값으로 저장할 refresh token record를 생성한다. */
   public static MemberRefreshToken create(
       Member member, String tokenHash, LocalDateTime expiresAt) {
+    if (member == null) {
+      throw new IllegalArgumentException("member must not be null");
+    }
+    if (tokenHash == null || tokenHash.isBlank()) {
+      throw new IllegalArgumentException("tokenHash must not be null or blank");
+    }
+    if (expiresAt == null) {
+      throw new IllegalArgumentException("expiresAt must not be null");
+    }
+    if (!expiresAt.isAfter(LocalDateTime.now())) {
+      throw new IllegalArgumentException("expiresAt must be a future time");
+    }
     MemberRefreshToken refreshToken = new MemberRefreshToken();
     refreshToken.member = member;
     refreshToken.tokenHash = tokenHash;

@@ -1,9 +1,27 @@
 package com.oit.dondok.global.config;
 
-import jakarta.validation.constraints.NotBlank;
+import java.util.Set;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.validation.annotation.Validated;
 
-@Validated
 @ConfigurationProperties(prefix = "app.cookie")
-public record CookieProperties(boolean secure, @NotBlank String sameSite) {}
+public record CookieProperties(boolean secure, String sameSite) {
+
+  private static final Set<String> ALLOWED = Set.of("Strict", "Lax", "None");
+
+  public CookieProperties {
+    if (sameSite == null) {
+      throw new IllegalArgumentException("app.cookie.same-site must not be null");
+    }
+    String normalized =
+        Character.toUpperCase(sameSite.charAt(0)) + sameSite.substring(1).toLowerCase();
+    if (!ALLOWED.contains(normalized)) {
+      throw new IllegalArgumentException(
+          "app.cookie.same-site must be one of Strict, Lax, None — got: " + sameSite);
+    }
+    if ("None".equals(normalized) && !secure) {
+      throw new IllegalArgumentException(
+          "app.cookie.same-site=None requires app.cookie.secure=true");
+    }
+    sameSite = normalized;
+  }
+}
