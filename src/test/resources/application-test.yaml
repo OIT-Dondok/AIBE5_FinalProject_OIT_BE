@@ -26,4 +26,4 @@ app:
     issuer: dondok-test
     access-token-expiration: 30m
     refresh-token-expiration: 7d
-    secret: test-secret-key-at-least-32-bytes-long
+    secret: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa

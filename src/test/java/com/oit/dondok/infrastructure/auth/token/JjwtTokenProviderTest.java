@@ -21,7 +21,7 @@ class JjwtTokenProviderTest {
   private static final String ISSUER = "dondok-test";
   private static final Duration ACCESS_TOKEN_EXPIRATION = Duration.ofMinutes(30);
   private static final Duration REFRESH_TOKEN_EXPIRATION = Duration.ofDays(7);
-  private static final String SECRET = "test-secret-key-at-least-32-bytes-long";
+  private static final String SECRET = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
   private static final String TYPE_CLAIM = "type";
 
   private final JwtTokenProperties jwtTokenProperties =
