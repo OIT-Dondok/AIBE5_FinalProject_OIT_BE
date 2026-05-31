@@ -34,4 +34,4 @@ management:
 app:
   cookie:
     secure: true
-    same-site: Lax
+    same-site: None
