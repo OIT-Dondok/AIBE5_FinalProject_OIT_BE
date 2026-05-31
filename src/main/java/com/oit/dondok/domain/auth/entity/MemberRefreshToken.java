@@ -48,4 +48,14 @@ public class MemberRefreshToken extends CreatedTimeEntity {
 
   @Column(name = "revoked_at")
   private LocalDateTime revokedAt;
+
+  /** 원문 token 대신 해시된 값으로 저장할 refresh token record를 생성한다. */
+  public static MemberRefreshToken create(
+      Member member, String tokenHash, LocalDateTime expiresAt) {
+    MemberRefreshToken refreshToken = new MemberRefreshToken();
+    refreshToken.member = member;
+    refreshToken.tokenHash = tokenHash;
+    refreshToken.expiresAt = expiresAt;
+    return refreshToken;
+  }
 }
