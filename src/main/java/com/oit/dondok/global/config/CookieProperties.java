@@ -9,7 +9,7 @@ public record CookieProperties(boolean secure, String sameSite) {
   private static final Set<String> ALLOWED = Set.of("Strict", "Lax", "None");
 
   public CookieProperties {
-    if (sameSite == null) {
+    if (sameSite == null || sameSite.isEmpty()) {
       throw new IllegalArgumentException("app.cookie.same-site must not be null");
     }
     String normalized =

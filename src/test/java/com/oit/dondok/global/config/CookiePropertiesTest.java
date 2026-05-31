@@ -45,6 +45,13 @@ class CookiePropertiesTest {
   }
 
   @Test
+  void createRejectsEmptySameSite() {
+    assertThatThrownBy(() -> new CookieProperties(false, ""))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("same-site");
+  }
+
+  @Test
   void createRejectsNoneWithSecureFalse() {
     assertThatThrownBy(() -> new CookieProperties(false, "None"))
         .isInstanceOf(IllegalArgumentException.class)
