@@ -62,7 +62,8 @@ class ImageServiceTest {
 
     assertThat(response.uploadUrl()).isEqualTo("https://s3.example.com/upload");
     // key는 클라이언트가 아니라 서버가 mission/{crewId}/{crewParticipantId}/{uuid} 형식으로 생성한다.
-    assertThat(response.s3Key()).matches("mission/42/101/[0-9a-fA-F-]{36}");
+    assertThat(response.s3Key())
+        .matches("mission/42/101/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\\.jpg");
   }
 
   @Test
