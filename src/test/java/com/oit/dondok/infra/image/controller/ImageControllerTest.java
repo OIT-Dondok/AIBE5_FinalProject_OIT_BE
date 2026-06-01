@@ -49,13 +49,15 @@ class ImageControllerTest {
 
   @Test
   void getPresignedUrlSuccess() throws Exception {
+    // 소유권이 내재적으로 보장되는 PROFILE_IMAGE로 happy path를 검증한다.
+    String s3Key = "profile/018f4fd2-6d7a-7a41-9f58-6d07f5c3c901/abc";
     PresignedUrlRequest request =
-        new PresignedUrlRequest(UploadPurpose.MISSION_IMAGE, 42L, 101L, "image/jpeg", 2048L);
+        new PresignedUrlRequest(UploadPurpose.PROFILE_IMAGE, null, null, "image/jpeg", 2048L);
     given(imageService.generatePresignedUrl(eq(MEMBER_UUID), any(PresignedUrlRequest.class)))
         .willReturn(
             PresignedUrlResponse.of(
                 "https://s3.example.com/upload",
-                "mission/42/101/018f4fd2-6d7a-7a41-9f58-6d07f5c3c901",
+                s3Key,
                 OffsetDateTime.parse("2026-06-01T12:10:00+09:00")));
 
     authenticate(MEMBER_UUID);
@@ -67,8 +69,7 @@ class ImageControllerTest {
                 .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.upload_url").value("https://s3.example.com/upload"))
-        .andExpect(
-            jsonPath("$.s3_key").value("mission/42/101/018f4fd2-6d7a-7a41-9f58-6d07f5c3c901"))
+        .andExpect(jsonPath("$.s3_key").value(s3Key))
         .andExpect(jsonPath("$.expires_at").value("2026-06-01T12:10:00+09:00"));
 
     // 인증된 사용자의 memberUuid가 서비스로 전달되어 권한 검증의 기준이 되는지 확인한다.

@@ -59,18 +59,20 @@ class ImageServiceTest {
   }
 
   @Test
-  void generatePresignedUrlBuildsMissionKeyForMissionImage() throws Exception {
-    givenPresignedUrl("https://s3.example.com/upload");
+  void generatePresignedUrlRejectsMissionImageUntilOwnershipVerified() {
+    // 소유권 검증이 구현되기 전까지 MISSION_IMAGE는 fail-closed로 차단한다 (IDOR 방지).
+    assertThatThrownBy(
+            () ->
+                imageService.generatePresignedUrl(
+                    MEMBER_UUID,
+                    new PresignedUrlRequest(
+                        UploadPurpose.MISSION_IMAGE, 42L, 101L, "image/jpeg", 2048L)))
+        .isInstanceOf(CustomException.class)
+        .extracting("errorCode")
+        .isEqualTo(ImageErrorCode.MISSION_IMAGE_UPLOAD_FORBIDDEN);
 
-    PresignedUrlResponse response =
-        imageService.generatePresignedUrl(
-            MEMBER_UUID,
-            new PresignedUrlRequest(UploadPurpose.MISSION_IMAGE, 42L, 101L, "image/jpeg", 2048L));
-
-    assertThat(response.uploadUrl()).isEqualTo("https://s3.example.com/upload");
-    // key는 클라이언트가 아니라 서버가 mission/{crewId}/{crewParticipantId}/{uuid} 형식으로 생성한다.
-    assertThat(response.s3Key()).matches("mission/42/101/[0-9a-fA-F-]{36}");
-    assertThat(response.expiresAt()).isNotNull();
+    // 차단된 요청은 presigned URL을 발급하지 않는다.
+    verify(s3Presigner, never()).presignPutObject(any(PutObjectPresignRequest.class));
   }
 
   @Test
@@ -104,7 +106,7 @@ class ImageServiceTest {
                 imageService.generatePresignedUrl(
                     MEMBER_UUID,
                     new PresignedUrlRequest(
-                        UploadPurpose.MISSION_IMAGE, 42L, 101L, "image/gif", 2048L)))
+                        UploadPurpose.PROFILE_IMAGE, null, null, "image/gif", 2048L)))
         .isInstanceOf(CustomException.class)
         .extracting("errorCode")
         .isEqualTo(ImageErrorCode.UNSUPPORTED_IMAGE_TYPE);
@@ -119,7 +121,7 @@ class ImageServiceTest {
                 imageService.generatePresignedUrl(
                     MEMBER_UUID,
                     new PresignedUrlRequest(
-                        UploadPurpose.MISSION_IMAGE, 42L, 101L, "image/jpeg", tooLarge)))
+                        UploadPurpose.PROFILE_IMAGE, null, null, "image/jpeg", tooLarge)))
         .isInstanceOf(CustomException.class)
         .extracting("errorCode")
         .isEqualTo(ImageErrorCode.IMAGE_TOO_LARGE);

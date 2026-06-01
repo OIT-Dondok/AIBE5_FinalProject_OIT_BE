@@ -3,6 +3,7 @@ package com.oit.dondok.infra.image.service;
 import com.oit.dondok.global.exception.CustomException;
 import com.oit.dondok.infra.image.dto.PresignedUrlRequest;
 import com.oit.dondok.infra.image.dto.PresignedUrlResponse;
+import com.oit.dondok.infra.image.dto.UploadPurpose;
 import com.oit.dondok.infra.image.exception.ImageErrorCode;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
@@ -92,15 +93,19 @@ public class ImageService {
     }
   }
 
-  // TODO(보안): 업로드 소유권 검증 미구현. CrewParticipantRepository가 이 브랜치에 머지되면 채운다.
-  // MISSION_IMAGE에 한해 다음을 검증한다(PROFILE/CREW는 요청자 본인 memberUuid namespace라 별도 검증 불필요):
-  // - crewParticipantRepository.findById(request.crewParticipantId())로 참여자 조회
-  // - participant.getCrew().getId() == request.crewId() 인지 확인
-  // - participant.getMember().getUuid() == memberUuid 인지 확인 (요청자 소유 검증)
-  // 위반 시 권한 예외(예: PARTICIPANT_NOT_FOUND)로 차단한다.
-  // 현재는 crew 도메인 의존성이 없어 통과시키며, 머지 전 반드시 구현해야 하는 IDOR 위험 지점이다.
+  // 업로드 namespace에 대한 권한을 검증한다.
+  // - PROFILE_IMAGE / CREW_IMAGE: key가 요청자 본인 memberUuid namespace이므로 소유권이 내재적으로 보장된다.
+  // - MISSION_IMAGE: 클라이언트가 보낸 crew_participant_id로 타인 namespace에 접근(IDOR)할 수 있어
+  //   참여자 소유권 검증이 반드시 필요하다. 검증 로직이 구현되기 전까지 fail-closed로 차단한다.
+  //
+  // TODO(소유권 검증): CrewParticipantRepository가 이 브랜치에 머지되면 아래 차단을 실제 검증으로 대체한다.
+  // - findById(request.crewParticipantId())로 참여자 존재 확인
+  // - participant.getCrew().getId() == request.crewId()
+  // - participant.getMember().getUuid() == memberUuid (요청자 소유 검증)
   private void verifyUploadPermission(UUID memberUuid, PresignedUrlRequest request) {
-    // 의도적으로 미구현 상태로 둔다. 위 TODO 참고.
+    if (request.purpose() == UploadPurpose.MISSION_IMAGE) {
+      throw new CustomException(ImageErrorCode.MISSION_IMAGE_UPLOAD_FORBIDDEN);
+    }
   }
 
   public void reEncodeImage(String objectKey) {
