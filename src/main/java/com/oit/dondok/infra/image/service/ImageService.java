@@ -31,11 +31,11 @@ public class ImageService {
   private String bucket;
 
   public PresignedUrlResponse generatePresignedUrl(PresignedUrlRequest request) {
-    // S3에 저장될 파일 경로 생성
-    // UUID로 파일명을 랜덤하게 만들어 충돌 방지
+    // S3에 저장될 object key 생성. 클라이언트가 key를 지정하지 못하도록 서버가 생성한다.
+    // key 형식: mission/{crewId}/{crewParticipantId}/{uuid}
     String objectKey =
         String.format(
-            "missions/%d/%d/%s.jpg", request.getCrewId(), request.getMemberId(), UUID.randomUUID());
+            "mission/%d/%d/%s", request.crewId(), request.crewParticipantId(), UUID.randomUUID());
 
     // S3에 PUT 요청을 허용하는 서명된 URL 생성 요청
     PutObjectPresignRequest presignRequest =
@@ -47,7 +47,7 @@ public class ImageService {
     // S3가 서명된 URL 반환
     String presignedUrl = s3Presigner.presignPutObject(presignRequest).url().toString();
 
-    return new PresignedUrlResponse(presignedUrl, objectKey);
+    return PresignedUrlResponse.of(presignedUrl, objectKey);
   }
 
   public void reEncodeImage(String objectKey) {
