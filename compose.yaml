@@ -14,3 +14,9 @@ services:
     image: 'redis:7.2.5'
     ports:
       - '${REDIS_PORT}:6379'
+  localstack:
+    image: localstack/localstack:3.8
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=s3
