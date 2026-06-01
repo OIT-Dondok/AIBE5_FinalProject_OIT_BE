@@ -12,7 +12,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.oit.dondok.global.exception.GlobalExceptionHandler;
 import com.oit.dondok.infra.image.dto.PresignedUrlRequest;
 import com.oit.dondok.infra.image.dto.PresignedUrlResponse;
+import com.oit.dondok.infra.image.dto.UploadPurpose;
 import com.oit.dondok.infra.image.service.ImageService;
+import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -32,6 +34,8 @@ import org.springframework.test.web.servlet.MockMvc;
 @Import(GlobalExceptionHandler.class)
 class ImageControllerTest {
 
+  private static final UUID MEMBER_UUID = UUID.fromString("018f4fd2-6d7a-7a41-9f58-6d07f5c3c901");
+
   @Autowired private MockMvc mockMvc;
 
   @Autowired private ObjectMapper objectMapper;
@@ -45,15 +49,16 @@ class ImageControllerTest {
 
   @Test
   void getPresignedUrlSuccess() throws Exception {
-    UUID memberUuid = UUID.fromString("018f4fd2-6d7a-7a41-9f58-6d07f5c3c901");
-    PresignedUrlRequest request = new PresignedUrlRequest(42L, 101L);
-    given(imageService.generatePresignedUrl(eq(memberUuid), any(PresignedUrlRequest.class)))
+    PresignedUrlRequest request =
+        new PresignedUrlRequest(UploadPurpose.MISSION_IMAGE, 42L, 101L, "image/jpeg", 2048L);
+    given(imageService.generatePresignedUrl(eq(MEMBER_UUID), any(PresignedUrlRequest.class)))
         .willReturn(
             PresignedUrlResponse.of(
                 "https://s3.example.com/upload",
-                "mission/42/101/018f4fd2-6d7a-7a41-9f58-6d07f5c3c901"));
+                "mission/42/101/018f4fd2-6d7a-7a41-9f58-6d07f5c3c901",
+                OffsetDateTime.parse("2026-06-01T12:10:00+09:00")));
 
-    authenticate(memberUuid);
+    authenticate(MEMBER_UUID);
 
     mockMvc
         .perform(
@@ -63,55 +68,46 @@ class ImageControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.upload_url").value("https://s3.example.com/upload"))
         .andExpect(
-            jsonPath("$.s3_key").value("mission/42/101/018f4fd2-6d7a-7a41-9f58-6d07f5c3c901"));
+            jsonPath("$.s3_key").value("mission/42/101/018f4fd2-6d7a-7a41-9f58-6d07f5c3c901"))
+        .andExpect(jsonPath("$.expires_at").value("2026-06-01T12:10:00+09:00"));
 
     // 인증된 사용자의 memberUuid가 서비스로 전달되어 권한 검증의 기준이 되는지 확인한다.
-    verify(imageService).generatePresignedUrl(eq(memberUuid), any(PresignedUrlRequest.class));
+    verify(imageService).generatePresignedUrl(eq(MEMBER_UUID), any(PresignedUrlRequest.class));
   }
 
   @Test
-  void getPresignedUrlRejectsNullCrewId() throws Exception {
-    PresignedUrlRequest request = new PresignedUrlRequest(null, 101L);
+  void getPresignedUrlRejectsNullPurpose() throws Exception {
+    PresignedUrlRequest request = new PresignedUrlRequest(null, 42L, 101L, "image/jpeg", 2048L);
 
-    mockMvc
-        .perform(
-            post("/api/uploads/presigned-url")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-        .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
+    performAndExpectInvalidInput(request);
   }
 
   @Test
-  void getPresignedUrlRejectsNullCrewParticipantId() throws Exception {
-    PresignedUrlRequest request = new PresignedUrlRequest(42L, null);
+  void getPresignedUrlRejectsMissionImageWithoutCrewContext() throws Exception {
+    // MISSION_IMAGE인데 crew_id / crew_participant_id가 없으면 cross-field 검증에서 막힌다.
+    PresignedUrlRequest request =
+        new PresignedUrlRequest(UploadPurpose.MISSION_IMAGE, null, null, "image/jpeg", 2048L);
 
-    mockMvc
-        .perform(
-            post("/api/uploads/presigned-url")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-        .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
+    performAndExpectInvalidInput(request);
   }
 
   @Test
-  void getPresignedUrlRejectsNonPositiveCrewId() throws Exception {
-    PresignedUrlRequest request = new PresignedUrlRequest(-1L, 101L);
+  void getPresignedUrlRejectsBlankContentType() throws Exception {
+    PresignedUrlRequest request =
+        new PresignedUrlRequest(UploadPurpose.PROFILE_IMAGE, null, null, " ", 2048L);
 
-    mockMvc
-        .perform(
-            post("/api/uploads/presigned-url")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-        .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
+    performAndExpectInvalidInput(request);
   }
 
   @Test
-  void getPresignedUrlRejectsZeroCrewParticipantId() throws Exception {
-    PresignedUrlRequest request = new PresignedUrlRequest(42L, 0L);
+  void getPresignedUrlRejectsNonPositiveContentLength() throws Exception {
+    PresignedUrlRequest request =
+        new PresignedUrlRequest(UploadPurpose.PROFILE_IMAGE, null, null, "image/jpeg", 0L);
 
+    performAndExpectInvalidInput(request);
+  }
+
+  private void performAndExpectInvalidInput(PresignedUrlRequest request) throws Exception {
     mockMvc
         .perform(
             post("/api/uploads/presigned-url")
