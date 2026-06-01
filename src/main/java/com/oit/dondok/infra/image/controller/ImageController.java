@@ -4,8 +4,10 @@ import com.oit.dondok.infra.image.dto.PresignedUrlRequest;
 import com.oit.dondok.infra.image.dto.PresignedUrlResponse;
 import com.oit.dondok.infra.image.service.ImageService;
 import jakarta.validation.Valid;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -20,7 +22,7 @@ public class ImageController {
 
   @PostMapping("/presigned-url")
   public ResponseEntity<PresignedUrlResponse> getPresignedUrl(
-      @Valid @RequestBody PresignedUrlRequest request) {
-    return ResponseEntity.ok(imageService.generatePresignedUrl(request));
+      @AuthenticationPrincipal UUID memberUuid, @Valid @RequestBody PresignedUrlRequest request) {
+    return ResponseEntity.ok(imageService.generatePresignedUrl(memberUuid, request));
   }
 }

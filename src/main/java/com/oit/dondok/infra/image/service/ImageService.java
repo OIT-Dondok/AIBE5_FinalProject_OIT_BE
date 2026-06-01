@@ -31,7 +31,11 @@ public class ImageService {
   @Value("${app.aws.s3.bucket}")
   private String bucket;
 
-  public PresignedUrlResponse generatePresignedUrl(PresignedUrlRequest request) {
+  public PresignedUrlResponse generatePresignedUrl(UUID memberUuid, PresignedUrlRequest request) {
+    // presigned URL 발급은 특정 S3 namespace에 대한 업로드 권한 위임이므로, 발급 전에 요청자가
+    // 해당 crew/participant namespace에 업로드할 자격이 있는지 반드시 검증한다.
+    verifyUploadPermission(memberUuid, request);
+
     // S3에 저장될 object key 생성. 클라이언트가 key를 지정하지 못하도록 서버가 생성한다.
     // key 형식: mission/{crewId}/{crewParticipantId}/{uuid}
     String objectKey =
@@ -49,6 +53,16 @@ public class ImageService {
     String presignedUrl = s3Presigner.presignPutObject(presignRequest).url().toString();
 
     return PresignedUrlResponse.of(presignedUrl, objectKey);
+  }
+
+  // TODO(보안): 업로드 권한(소유권) 검증 미구현. CrewParticipantRepository가 이 브랜치에 머지되면 채운다.
+  // - crewParticipantRepository.findById(request.crewParticipantId())로 참여자 조회
+  // - participant.getCrew().getId() == request.crewId() 인지 확인
+  // - participant.getMember().getUuid() == memberUuid 인지 확인 (요청자 소유 검증)
+  // 위반 시 권한 예외(예: PARTICIPANT_NOT_FOUND)로 차단한다.
+  // 현재는 crew 도메인 의존성이 없어 통과시키며, 머지 전 반드시 구현해야 하는 IDOR 위험 지점이다.
+  private void verifyUploadPermission(UUID memberUuid, PresignedUrlRequest request) {
+    // 의도적으로 미구현 상태로 둔다. 위 TODO 참고.
   }
 
   public void reEncodeImage(String objectKey) {

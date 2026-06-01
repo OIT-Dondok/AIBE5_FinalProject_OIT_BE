@@ -17,6 +17,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 import javax.imageio.ImageIO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -58,7 +59,9 @@ class ImageServiceTest {
     given(s3Presigner.presignPutObject(any(PutObjectPresignRequest.class))).willReturn(presigned);
 
     PresignedUrlResponse response =
-        imageService.generatePresignedUrl(new PresignedUrlRequest(42L, 101L));
+        imageService.generatePresignedUrl(
+            UUID.fromString("018f4fd2-6d7a-7a41-9f58-6d07f5c3c901"),
+            new PresignedUrlRequest(42L, 101L));
 
     assertThat(response.uploadUrl()).isEqualTo("https://s3.example.com/upload");
     // key는 클라이언트가 아니라 서버가 mission/{crewId}/{crewParticipantId}/{uuid} 형식으로 생성한다.

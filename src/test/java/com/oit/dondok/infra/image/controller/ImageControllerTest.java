@@ -1,7 +1,9 @@
 package com.oit.dondok.infra.image.controller;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -11,6 +13,9 @@ import com.oit.dondok.global.exception.GlobalExceptionHandler;
 import com.oit.dondok.infra.image.dto.PresignedUrlRequest;
 import com.oit.dondok.infra.image.dto.PresignedUrlResponse;
 import com.oit.dondok.infra.image.service.ImageService;
+import java.util.Collections;
+import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -18,6 +23,8 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(ImageController.class)
@@ -31,14 +38,22 @@ class ImageControllerTest {
 
   @MockBean private ImageService imageService;
 
+  @AfterEach
+  void clearSecurityContext() {
+    SecurityContextHolder.clearContext();
+  }
+
   @Test
   void getPresignedUrlSuccess() throws Exception {
+    UUID memberUuid = UUID.fromString("018f4fd2-6d7a-7a41-9f58-6d07f5c3c901");
     PresignedUrlRequest request = new PresignedUrlRequest(42L, 101L);
-    given(imageService.generatePresignedUrl(any(PresignedUrlRequest.class)))
+    given(imageService.generatePresignedUrl(eq(memberUuid), any(PresignedUrlRequest.class)))
         .willReturn(
             PresignedUrlResponse.of(
                 "https://s3.example.com/upload",
                 "mission/42/101/018f4fd2-6d7a-7a41-9f58-6d07f5c3c901"));
+
+    authenticate(memberUuid);
 
     mockMvc
         .perform(
@@ -49,6 +64,9 @@ class ImageControllerTest {
         .andExpect(jsonPath("$.upload_url").value("https://s3.example.com/upload"))
         .andExpect(
             jsonPath("$.s3_key").value("mission/42/101/018f4fd2-6d7a-7a41-9f58-6d07f5c3c901"));
+
+    // 인증된 사용자의 memberUuid가 서비스로 전달되어 권한 검증의 기준이 되는지 확인한다.
+    verify(imageService).generatePresignedUrl(eq(memberUuid), any(PresignedUrlRequest.class));
   }
 
   @Test
@@ -101,5 +119,11 @@ class ImageControllerTest {
                 .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
+  }
+
+  private static void authenticate(UUID memberUuid) {
+    SecurityContextHolder.getContext()
+        .setAuthentication(
+            new UsernamePasswordAuthenticationToken(memberUuid, null, Collections.emptyList()));
   }
 }
