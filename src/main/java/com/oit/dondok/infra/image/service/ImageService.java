@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
@@ -51,17 +52,19 @@ public class ImageService {
   }
 
   public void reEncodeImage(String objectKey) {
-    try {
+    // try-with-resources로 S3 InputStream과 출력 스트림을 닫는다.
+    try (InputStream inputStream = downloadImage(objectKey);
+        ByteArrayOutputStream os = new ByteArrayOutputStream()) {
       // InputStream을 BufferedImage로 변환
-      BufferedImage image = ImageIO.read(downloadImage(objectKey));
+      BufferedImage image = ImageIO.read(inputStream);
       if (image == null) {
         throw new CustomException(ImageErrorCode.IMAGE_READ_FAILED);
       }
 
       // JPG로 재인코딩 (Exif 메타데이터 자동 제거)
-      ByteArrayOutputStream os = new ByteArrayOutputStream();
-      boolean written = ImageIO.write(image, "jpg", os);
-      if (!written) throw new CustomException(ImageErrorCode.IMAGE_ENCODE_FAILED);
+      if (!ImageIO.write(image, "jpg", os)) {
+        throw new CustomException(ImageErrorCode.IMAGE_ENCODE_FAILED);
+      }
 
       // 정제본을 같은 objectKey로 S3에 덮어쓰기
       s3Client.putObject(
@@ -71,6 +74,9 @@ public class ImageService {
               .contentType("image/jpeg")
               .build(),
           RequestBody.fromBytes(os.toByteArray()));
+    } catch (NoSuchKeyException e) {
+      // S3에 원본 객체가 없는 경우(404/NoSuchKey)
+      throw new CustomException(ImageErrorCode.IMAGE_NOT_FOUND);
     } catch (IOException e) {
       throw new CustomException(ImageErrorCode.IMAGE_ENCODE_FAILED);
     }
