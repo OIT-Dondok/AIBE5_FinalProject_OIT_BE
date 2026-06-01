@@ -4,25 +4,22 @@ import com.oit.dondok.global.exception.CustomException;
 import com.oit.dondok.infra.image.dto.PresignedUrlRequest;
 import com.oit.dondok.infra.image.dto.PresignedUrlResponse;
 import com.oit.dondok.infra.image.exception.ImageErrorCode;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.beans.factory.annotation.Value;
-import software.amazon.awssdk.core.ResponseInputStream;
-import software.amazon.awssdk.core.sync.RequestBody;
-import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.GetObjectRequest;
-import software.amazon.awssdk.services.s3.model.GetObjectResponse;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
-import software.amazon.awssdk.services.s3.presigner.S3Presigner;
-import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
-
-import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.Duration;
 import java.util.UUID;
+import javax.imageio.ImageIO;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
 @Service
 @RequiredArgsConstructor
@@ -30,17 +27,19 @@ public class ImageService {
   private final S3Presigner s3Presigner;
   private final S3Client s3Client;
 
-  @Value("${spring.cloud.aws.s3.bucket}")
+  @Value("${app.aws.s3.bucket}")
   private String bucket;
 
   public PresignedUrlResponse generatePresignedUrl(PresignedUrlRequest request) {
     // S3에 저장될 파일 경로 생성
     // UUID로 파일명을 랜덤하게 만들어 충돌 방지
-    String objectKey = String.format("missions/%d/%d/%s.jpg",
-            request.getCrewId(), request.getMemberId(), UUID.randomUUID());
+    String objectKey =
+        String.format(
+            "missions/%d/%d/%s.jpg", request.getCrewId(), request.getMemberId(), UUID.randomUUID());
 
     // S3에 PUT 요청을 허용하는 서명된 URL 생성 요청
-    PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
+    PutObjectPresignRequest presignRequest =
+        PutObjectPresignRequest.builder()
             .signatureDuration(Duration.ofMinutes(10)) // URL 유효시간 10분, 만료 후 업로드불가
             .putObjectRequest(r -> r.bucket(bucket).key(objectKey).contentType("image/jpeg"))
             .build();
@@ -65,13 +64,12 @@ public class ImageService {
 
       // 정제본을 같은 objectKey로 S3에 덮어쓰기
       s3Client.putObject(
-              PutObjectRequest.builder()
-                      .bucket(bucket)
-                      .key(objectKey)
-                      .contentType("image/jpeg")
-                      .build(),
-              RequestBody.fromBytes(os.toByteArray())
-      );
+          PutObjectRequest.builder()
+              .bucket(bucket)
+              .key(objectKey)
+              .contentType("image/jpeg")
+              .build(),
+          RequestBody.fromBytes(os.toByteArray()));
     } catch (IOException e) {
       throw new CustomException(ImageErrorCode.IMAGE_ENCODE_FAILED);
     }
@@ -79,9 +77,6 @@ public class ImageService {
 
   // S3에서 원본 이미지 스트림 다운로드
   private InputStream downloadImage(String objectKey) {
-    return s3Client.getObject(
-            GetObjectRequest.builder()
-                    .bucket(bucket).key(objectKey).build()
-    );
+    return s3Client.getObject(GetObjectRequest.builder().bucket(bucket).key(objectKey).build());
   }
 }
