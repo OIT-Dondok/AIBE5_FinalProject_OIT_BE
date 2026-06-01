@@ -60,7 +60,8 @@ public class ImageService {
 
       // JPG로 재인코딩 (Exif 메타데이터 자동 제거)
       ByteArrayOutputStream os = new ByteArrayOutputStream();
-      ImageIO.write(image, "jpg", os);
+      boolean written = ImageIO.write(image, "jpg", os);
+      if (!written) throw new CustomException(ImageErrorCode.IMAGE_ENCODE_FAILED);
 
       // 정제본을 같은 objectKey로 S3에 덮어쓰기
       s3Client.putObject(

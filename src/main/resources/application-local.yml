@@ -45,3 +45,6 @@ app:
   cookie:
     secure: false
     same-site: Lax
+  aws:
+    s3:
+      bucket: dondok-bucket
