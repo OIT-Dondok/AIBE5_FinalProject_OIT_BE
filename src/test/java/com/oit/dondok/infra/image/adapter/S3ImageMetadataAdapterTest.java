@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 import com.oit.dondok.domain.mission.port.ImageMetadata;
 import com.oit.dondok.global.exception.CustomException;
@@ -23,6 +25,8 @@ import software.amazon.awssdk.core.ResponseBytes;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 
 @ExtendWith(MockitoExtension.class)
@@ -44,7 +48,7 @@ class S3ImageMetadataAdapterTest {
   // 빈 바이트의 SHA-256은 표준 벡터와 일치하고, EXIF가 없으면 takenAt은 null이다.
   @Test
   void extractComputesSha256AndReturnsNullTakenAtWhenNoExif() {
-    givenObjectBytes(new byte[0]);
+    givenObject(new byte[0]);
 
     ImageMetadata metadata = adapter.extract("mission/1/1/empty");
 
@@ -55,7 +59,7 @@ class S3ImageMetadataAdapterTest {
   // EXIF가 없는 정상 jpeg는 takenAt이 null이고 해시는 64자 hex로 계산된다.
   @Test
   void extractReturnsNullTakenAtForImageWithoutExif() throws Exception {
-    givenObjectBytes(jpegBytesWithoutExif());
+    givenObject(jpegBytesWithoutExif());
 
     ImageMetadata metadata = adapter.extract("mission/1/1/plain");
 
@@ -63,19 +67,38 @@ class S3ImageMetadataAdapterTest {
     assertThat(metadata.sha256()).matches("[0-9a-f]{64}");
   }
 
-  // S3에 객체가 없으면 IMAGE_NOT_FOUND로 변환된다.
+  // S3에 객체가 없으면(HeadObject 단계) IMAGE_NOT_FOUND로 변환된다.
   @Test
   void extractThrowsImageNotFoundWhenObjectMissing() {
-    given(s3Client.getObjectAsBytes(any(GetObjectRequest.class)))
+    given(s3Client.headObject(any(HeadObjectRequest.class)))
         .willThrow(NoSuchKeyException.builder().build());
 
     assertThatThrownBy(() -> adapter.extract("mission/1/1/missing"))
         .isInstanceOf(CustomException.class)
         .extracting("errorCode")
         .isEqualTo(ImageErrorCode.IMAGE_NOT_FOUND);
+
+    verify(s3Client, never()).getObjectAsBytes(any(GetObjectRequest.class));
   }
 
-  private void givenObjectBytes(byte[] bytes) {
+  // 크기가 한도를 초과하면 다운로드 전에 IMAGE_TOO_LARGE로 차단된다.
+  @Test
+  void extractThrowsTooLargeBeforeDownload() {
+    given(s3Client.headObject(any(HeadObjectRequest.class)))
+        .willReturn(HeadObjectResponse.builder().contentLength(10L * 1024 * 1024 + 1).build());
+
+    assertThatThrownBy(() -> adapter.extract("mission/1/1/huge"))
+        .isInstanceOf(CustomException.class)
+        .extracting("errorCode")
+        .isEqualTo(ImageErrorCode.IMAGE_TOO_LARGE);
+
+    verify(s3Client, never()).getObjectAsBytes(any(GetObjectRequest.class));
+  }
+
+  // HeadObject(크기 통과) + 객체 바이트를 함께 스텁한다.
+  private void givenObject(byte[] bytes) {
+    given(s3Client.headObject(any(HeadObjectRequest.class)))
+        .willReturn(HeadObjectResponse.builder().contentLength((long) bytes.length).build());
     given(s3Client.getObjectAsBytes(any(GetObjectRequest.class)))
         .willReturn(ResponseBytes.fromByteArray(GetObjectResponse.builder().build(), bytes));
   }
