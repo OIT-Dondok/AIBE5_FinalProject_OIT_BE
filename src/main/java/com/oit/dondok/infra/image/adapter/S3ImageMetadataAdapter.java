@@ -23,6 +23,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 
 // ImageMetadataPort의 S3 구현. 원본 객체 바이트를 1회만 내려받아 같은 byte[]에서 EXIF 촬영 시각과 SHA-256을 함께 계산한다.
@@ -32,6 +34,7 @@ import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 public class S3ImageMetadataAdapter implements ImageMetadataPort {
 
   private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
+  private static final long MAX_CONTENT_LENGTH = 10 * 1024 * 1024; // 10MB
 
   private final S3Client s3Client;
 
@@ -45,12 +48,26 @@ public class S3ImageMetadataAdapter implements ImageMetadataPort {
   }
 
   private byte[] downloadBytes(String s3Key) {
+    // 전체 바이트를 메모리에 적재하기 전에 HeadObject로 크기를 먼저 검증한다 (OOM/DoS 방어).
+    verifyObjectSize(s3Key);
     try {
       return s3Client
           .getObjectAsBytes(GetObjectRequest.builder().bucket(bucket).key(s3Key).build())
           .asByteArray();
     } catch (NoSuchKeyException e) {
       throw new CustomException(ImageErrorCode.IMAGE_NOT_FOUND);
+    }
+  }
+
+  private void verifyObjectSize(String s3Key) {
+    HeadObjectResponse head;
+    try {
+      head = s3Client.headObject(HeadObjectRequest.builder().bucket(bucket).key(s3Key).build());
+    } catch (NoSuchKeyException e) {
+      throw new CustomException(ImageErrorCode.IMAGE_NOT_FOUND);
+    }
+    if (head.contentLength() != null && head.contentLength() > MAX_CONTENT_LENGTH) {
+      throw new  CustomException(ImageErrorCode.IMAGE_TOO_LARGE);
     }
   }
 
