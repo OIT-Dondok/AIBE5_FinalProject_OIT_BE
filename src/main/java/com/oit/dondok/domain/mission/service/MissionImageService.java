@@ -4,12 +4,16 @@ import com.oit.dondok.domain.crew.entity.CrewParticipant;
 import com.oit.dondok.domain.crew.exception.CrewErrorCode;
 import com.oit.dondok.domain.crew.repository.CrewParticipantRepository;
 import com.oit.dondok.domain.mission.dto.response.ImageVerifyResult;
+import com.oit.dondok.domain.mission.entity.DailySettlementType;
 import com.oit.dondok.domain.mission.entity.ExifRisk;
+import com.oit.dondok.domain.mission.entity.MissionRule;
+import com.oit.dondok.domain.mission.exception.MissionErrorCode;
 import com.oit.dondok.domain.mission.port.ImageMetadata;
 import com.oit.dondok.domain.mission.port.ImageMetadataPort;
 import com.oit.dondok.domain.mission.repository.MissionLogRepository;
+import com.oit.dondok.domain.mission.repository.MissionRuleRepository;
 import com.oit.dondok.global.exception.CustomException;
-
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +27,7 @@ public class MissionImageService {
   private final CrewParticipantRepository crewParticipantRepository;
   private final ImageMetadataPort imageMetadataPort;
   private final MissionLogRepository missionLogRepository;
+  private final MissionRuleRepository missionRuleRepository;
 
   // 미션 이미지 업로드 소유권 검증
   @Transactional(readOnly = true)
@@ -47,19 +52,30 @@ public class MissionImageService {
       Long crewId, String s3Key, LocalDateTime serverTime) {
     ImageMetadata metadata = imageMetadataPort.extract(s3Key);
 
-    ExifRisk exifRisk = classifyExifRisk(metadata.takenAt(), serverTime);
-    boolean duplicate = missionLogRepository.existsByCrewParticipant_Crew_IdAndImageHash(crewId, metadata.sha256());
+    // 크루의 미션 규칙에서 인증마감 기준을 가져온다
+    MissionRule missionRule =
+        missionRuleRepository
+            .findByCrew_Id(crewId)
+            .orElseThrow(() -> new CustomException(MissionErrorCode.MISSION_RULE_NOT_FOUND));
+
+    ExifRisk exifRisk =
+        classifyExifRisk(metadata.takenAt(), serverTime, missionRule.getDailySettlementType());
+    boolean duplicate =
+        missionLogRepository.existsByCrewParticipant_Crew_IdAndImageHash(crewId, metadata.sha256());
     return new ImageVerifyResult(metadata.takenAt(), metadata.sha256(), exifRisk, duplicate);
   }
 
-  private ExifRisk classifyExifRisk(LocalDateTime takenAt, LocalDateTime serverTime) {
+  private ExifRisk classifyExifRisk(
+      LocalDateTime takenAt, LocalDateTime serverTime, DailySettlementType type) {
     if (takenAt == null) {
       return ExifRisk.MISSING;
     }
-    // 인증 대상 날짜는 server_time(Asia/Seoul) 기준. 윈도우 = [당일 00:00, server_time]
-    LocalDateTime windowStart = serverTime.toLocalDate().atStartOfDay();
-    // TODO: 윈도우 끝을 DailySettlementType 인증 마감으로 좁힌다.
-    if (takenAt.isBefore(windowStart) || takenAt.isAfter(serverTime)) {
+    // 인증 대상 날짜는 server_time(Asia/Seoul) 기준. 윈도우 = [당일 00:00, 당일 인증마감]
+    LocalDate missionDate = serverTime.toLocalDate();
+    LocalDateTime windowStart = missionDate.atStartOfDay();
+    LocalDateTime deadline = missionDate.atTime(type.getCertificationDeadline());
+    // 마감 이후 또는 server_time(제출 시각) 이후에 찍힌 사진은 인정 윈도우 밖
+    if (takenAt.isBefore(windowStart) || takenAt.isAfter(deadline) || takenAt.isAfter(serverTime)) {
       return ExifRisk.TIME_INVALID;
     }
     return ExifRisk.NORMAL;

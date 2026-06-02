@@ -26,7 +26,7 @@ import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 
 // ImageMetadataPort의 S3 구현. 원본 객체 바이트를 1회만 내려받아 같은 byte[]에서 EXIF 촬영 시각과 SHA-256을 함께 계산한다.
-//(S3 GET을 두 번 하지 않는다.)
+// (S3 GET을 두 번 하지 않는다.)
 @Component
 @RequiredArgsConstructor
 public class S3ImageMetadataAdapter implements ImageMetadataPort {
