@@ -67,7 +67,7 @@ public class S3ImageMetadataAdapter implements ImageMetadataPort {
       throw new CustomException(ImageErrorCode.IMAGE_NOT_FOUND);
     }
     if (head.contentLength() != null && head.contentLength() > MAX_CONTENT_LENGTH) {
-      throw new  CustomException(ImageErrorCode.IMAGE_TOO_LARGE);
+      throw new CustomException(ImageErrorCode.IMAGE_TOO_LARGE);
     }
   }
 
