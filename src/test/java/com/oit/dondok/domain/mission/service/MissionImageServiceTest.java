@@ -12,7 +12,7 @@ import com.oit.dondok.domain.crew.entity.CrewParticipant;
 import com.oit.dondok.domain.crew.exception.CrewErrorCode;
 import com.oit.dondok.domain.crew.repository.CrewParticipantRepository;
 import com.oit.dondok.domain.member.entity.Member;
-import com.oit.dondok.domain.mission.dto.response.ImageVerifyResult;
+import com.oit.dondok.domain.mission.dto.response.ImageVerifyResponse;
 import com.oit.dondok.domain.mission.entity.DailySettlementType;
 import com.oit.dondok.domain.mission.entity.ExifRisk;
 import com.oit.dondok.domain.mission.entity.MissionRule;
@@ -98,13 +98,13 @@ class MissionImageServiceTest {
 
   // EXIF 시각이 없으면 ExifRisk.MISSING.
   @Test
-  void getImageVerifyResultReturnsMissingWhenNoExif() {
+  void getImageVerifyResponseReturnsMissingWhenNoExif() {
     givenExtracted(null, "hash-1");
     givenMissionRule(DailySettlementType.A);
     givenDuplicate(false);
 
-    ImageVerifyResult result =
-        missionImageService.getImageVerifyResult(
+    ImageVerifyResponse result =
+        missionImageService.getImageVerifyResponse(
             CREW_ID, S3_KEY, LocalDateTime.of(2026, 6, 2, 8, 30));
 
     assertThat(result.exifRisk()).isEqualTo(ExifRisk.MISSING);
@@ -115,13 +115,13 @@ class MissionImageServiceTest {
 
   // 촬영 시각이 [당일 00:00, 마감] 안이고 server_time 이전이면 ExifRisk.NORMAL.
   @Test
-  void getImageVerifyResultReturnsNormalWithinWindow() {
+  void getImageVerifyResponseReturnsNormalWithinWindow() {
     givenExtracted(LocalDateTime.of(2026, 6, 2, 8, 0), "hash-1");
     givenMissionRule(DailySettlementType.A); // 인증마감 09:00
     givenDuplicate(false);
 
-    ImageVerifyResult result =
-        missionImageService.getImageVerifyResult(
+    ImageVerifyResponse result =
+        missionImageService.getImageVerifyResponse(
             CREW_ID, S3_KEY, LocalDateTime.of(2026, 6, 2, 8, 30));
 
     assertThat(result.exifRisk()).isEqualTo(ExifRisk.NORMAL);
@@ -129,13 +129,13 @@ class MissionImageServiceTest {
 
   // 촬영 시각이 인증 당일 00:00 이전(전날)이면 ExifRisk.TIME_INVALID.
   @Test
-  void getImageVerifyResultReturnsTimeInvalidWhenTakenBeforeMissionDay() {
+  void getImageVerifyResponseReturnsTimeInvalidWhenTakenBeforeMissionDay() {
     givenExtracted(LocalDateTime.of(2026, 6, 1, 23, 0), "hash-1");
     givenMissionRule(DailySettlementType.A);
     givenDuplicate(false);
 
-    ImageVerifyResult result =
-        missionImageService.getImageVerifyResult(
+    ImageVerifyResponse result =
+        missionImageService.getImageVerifyResponse(
             CREW_ID, S3_KEY, LocalDateTime.of(2026, 6, 2, 8, 30));
 
     assertThat(result.exifRisk()).isEqualTo(ExifRisk.TIME_INVALID);
@@ -143,13 +143,13 @@ class MissionImageServiceTest {
 
   // 촬영 시각이 인증마감 이후면 ExifRisk.TIME_INVALID (지각 제출 케이스).
   @Test
-  void getImageVerifyResultReturnsTimeInvalidWhenTakenAfterDeadline() {
+  void getImageVerifyResponseReturnsTimeInvalidWhenTakenAfterDeadline() {
     givenExtracted(LocalDateTime.of(2026, 6, 2, 9, 30), "hash-1"); // 마감 09:00 이후
     givenMissionRule(DailySettlementType.A);
     givenDuplicate(false);
 
-    ImageVerifyResult result =
-        missionImageService.getImageVerifyResult(
+    ImageVerifyResponse result =
+        missionImageService.getImageVerifyResponse(
             CREW_ID, S3_KEY, LocalDateTime.of(2026, 6, 2, 10, 0));
 
     assertThat(result.exifRisk()).isEqualTo(ExifRisk.TIME_INVALID);
@@ -157,13 +157,13 @@ class MissionImageServiceTest {
 
   // 촬영 시각이 server_time(제출 시각) 이후면 ExifRisk.TIME_INVALID (물리적으로 불가능).
   @Test
-  void getImageVerifyResultReturnsTimeInvalidWhenTakenAfterServerTime() {
+  void getImageVerifyResponseReturnsTimeInvalidWhenTakenAfterServerTime() {
     givenExtracted(LocalDateTime.of(2026, 6, 2, 8, 30), "hash-1"); // server_time 이후, 마감 이전
     givenMissionRule(DailySettlementType.A);
     givenDuplicate(false);
 
-    ImageVerifyResult result =
-        missionImageService.getImageVerifyResult(
+    ImageVerifyResponse result =
+        missionImageService.getImageVerifyResponse(
             CREW_ID, S3_KEY, LocalDateTime.of(2026, 6, 2, 8, 0));
 
     assertThat(result.exifRisk()).isEqualTo(ExifRisk.TIME_INVALID);
@@ -171,13 +171,13 @@ class MissionImageServiceTest {
 
   // 같은 크루에 동일 해시가 있으면 duplicate=true.
   @Test
-  void getImageVerifyResultFlagsDuplicateWhenHashExistsInCrew() {
+  void getImageVerifyResponseFlagsDuplicateWhenHashExistsInCrew() {
     givenExtracted(LocalDateTime.of(2026, 6, 2, 8, 0), "hash-1");
     givenMissionRule(DailySettlementType.A);
     givenDuplicate(true);
 
-    ImageVerifyResult result =
-        missionImageService.getImageVerifyResult(
+    ImageVerifyResponse result =
+        missionImageService.getImageVerifyResponse(
             CREW_ID, S3_KEY, LocalDateTime.of(2026, 6, 2, 8, 30));
 
     assertThat(result.duplicate()).isTrue();
@@ -185,13 +185,13 @@ class MissionImageServiceTest {
 
   // 크루의 미션 규칙이 없으면 MISSION_RULE_NOT_FOUND.
   @Test
-  void getImageVerifyResultThrowsWhenMissionRuleNotFound() {
+  void getImageVerifyResponseThrowsWhenMissionRuleNotFound() {
     givenExtracted(LocalDateTime.of(2026, 6, 2, 8, 0), "hash-1");
-    given(missionRuleRepository.findByCrew_Id(CREW_ID)).willReturn(Optional.empty());
+    given(missionRuleRepository.findByCrewId(CREW_ID)).willReturn(Optional.empty());
 
     assertThatThrownBy(
             () ->
-                missionImageService.getImageVerifyResult(
+                missionImageService.getImageVerifyResponse(
                     CREW_ID, S3_KEY, LocalDateTime.of(2026, 6, 2, 8, 30)))
         .isInstanceOf(CustomException.class)
         .extracting("errorCode")
@@ -205,11 +205,11 @@ class MissionImageServiceTest {
   private void givenMissionRule(DailySettlementType type) {
     MissionRule rule = mock(MissionRule.class);
     given(rule.getDailySettlementType()).willReturn(type);
-    given(missionRuleRepository.findByCrew_Id(CREW_ID)).willReturn(Optional.of(rule));
+    given(missionRuleRepository.findByCrewId(CREW_ID)).willReturn(Optional.of(rule));
   }
 
   private void givenDuplicate(boolean duplicate) {
-    given(missionLogRepository.existsByCrewParticipant_Crew_IdAndImageHash(anyLong(), anyString()))
+    given(missionLogRepository.existsByCrewParticipantCrewIdAndImageHash(anyLong(), anyString()))
         .willReturn(duplicate);
   }
 

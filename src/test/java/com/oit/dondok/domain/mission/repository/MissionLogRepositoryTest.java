@@ -35,8 +35,7 @@ class MissionLogRepositoryTest {
     persistMissionLog(persistParticipant(crew, host), "HASH_A");
 
     assertThat(
-            missionLogRepository.existsByCrewParticipant_Crew_IdAndImageHash(
-                crew.getId(), "HASH_A"))
+            missionLogRepository.existsByCrewParticipantCrewIdAndImageHash(crew.getId(), "HASH_A"))
         .isTrue();
   }
 
@@ -48,7 +47,7 @@ class MissionLogRepositoryTest {
     persistMissionLog(persistParticipant(crew, host), "HASH_A");
 
     assertThat(
-            missionLogRepository.existsByCrewParticipant_Crew_IdAndImageHash(
+            missionLogRepository.existsByCrewParticipantCrewIdAndImageHash(
                 crew.getId(), "HASH_OTHER"))
         .isFalse();
   }
@@ -62,7 +61,7 @@ class MissionLogRepositoryTest {
     Crew otherCrew = persistCrew(host, "다른크루");
 
     assertThat(
-            missionLogRepository.existsByCrewParticipant_Crew_IdAndImageHash(
+            missionLogRepository.existsByCrewParticipantCrewIdAndImageHash(
                 otherCrew.getId(), "HASH_A"))
         .isFalse();
   }

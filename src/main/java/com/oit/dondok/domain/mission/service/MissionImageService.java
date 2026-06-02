@@ -3,7 +3,7 @@ package com.oit.dondok.domain.mission.service;
 import com.oit.dondok.domain.crew.entity.CrewParticipant;
 import com.oit.dondok.domain.crew.exception.CrewErrorCode;
 import com.oit.dondok.domain.crew.repository.CrewParticipantRepository;
-import com.oit.dondok.domain.mission.dto.response.ImageVerifyResult;
+import com.oit.dondok.domain.mission.dto.response.ImageVerifyResponse;
 import com.oit.dondok.domain.mission.entity.DailySettlementType;
 import com.oit.dondok.domain.mission.entity.ExifRisk;
 import com.oit.dondok.domain.mission.entity.MissionRule;
@@ -48,21 +48,21 @@ public class MissionImageService {
 
   // 원본 이미지에서 EXIF 시각, 해시를 추출하고 risk signal(ExifRisk, 중복)을 산출
   @Transactional(readOnly = true)
-  public ImageVerifyResult getImageVerifyResult(
+  public ImageVerifyResponse getImageVerifyResponse(
       Long crewId, String s3Key, LocalDateTime serverTime) {
     ImageMetadata metadata = imageMetadataPort.extract(s3Key);
 
     // 크루의 미션 규칙에서 인증마감 기준을 가져온다
     MissionRule missionRule =
         missionRuleRepository
-            .findByCrew_Id(crewId)
+            .findByCrewId(crewId)
             .orElseThrow(() -> new CustomException(MissionErrorCode.MISSION_RULE_NOT_FOUND));
 
     ExifRisk exifRisk =
         classifyExifRisk(metadata.takenAt(), serverTime, missionRule.getDailySettlementType());
     boolean duplicate =
-        missionLogRepository.existsByCrewParticipant_Crew_IdAndImageHash(crewId, metadata.sha256());
-    return new ImageVerifyResult(metadata.takenAt(), metadata.sha256(), exifRisk, duplicate);
+        missionLogRepository.existsByCrewParticipantCrewIdAndImageHash(crewId, metadata.sha256());
+    return new ImageVerifyResponse(metadata.takenAt(), metadata.sha256(), exifRisk, duplicate);
   }
 
   private ExifRisk classifyExifRisk(
