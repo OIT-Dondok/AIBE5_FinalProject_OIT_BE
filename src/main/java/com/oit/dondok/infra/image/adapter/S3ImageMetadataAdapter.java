@@ -1,0 +1,82 @@
+package com.oit.dondok.infra.image.adapter;
+
+import com.drew.imaging.ImageMetadataReader;
+import com.drew.imaging.ImageProcessingException;
+import com.drew.metadata.Metadata;
+import com.drew.metadata.exif.ExifSubIFDDirectory;
+import com.oit.dondok.domain.mission.port.ImageMetadata;
+import com.oit.dondok.domain.mission.port.ImageMetadataPort;
+import com.oit.dondok.global.exception.CustomException;
+import com.oit.dondok.global.exception.GlobalErrorCode;
+import com.oit.dondok.infra.image.exception.ImageErrorCode;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Date;
+import java.util.HexFormat;
+import java.util.TimeZone;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
+
+// ImageMetadataPort의 S3 구현. 원본 객체 바이트를 1회만 내려받아 같은 byte[]에서 EXIF 촬영 시각과 SHA-256을 함께 계산한다.
+//(S3 GET을 두 번 하지 않는다.)
+@Component
+@RequiredArgsConstructor
+public class S3ImageMetadataAdapter implements ImageMetadataPort {
+
+  private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
+
+  private final S3Client s3Client;
+
+  @Value("${app.aws.s3.bucket}")
+  private String bucket;
+
+  @Override
+  public ImageMetadata extract(String s3Key) {
+    byte[] bytes = downloadBytes(s3Key);
+    return new ImageMetadata(extractTakenAt(bytes), sha256Hex(bytes));
+  }
+
+  private byte[] downloadBytes(String s3Key) {
+    try {
+      return s3Client
+          .getObjectAsBytes(GetObjectRequest.builder().bucket(bucket).key(s3Key).build())
+          .asByteArray();
+    } catch (NoSuchKeyException e) {
+      throw new CustomException(ImageErrorCode.IMAGE_NOT_FOUND);
+    }
+  }
+
+  // EXIF DateTimeOriginal(촬영 시각)을 Asia/Seoul 기준 LocalDateTime으로 추출한다.
+  // EXIF가 없거나 파싱 실패 시 null을 반환한다 (1단계는 signal만 다루므로 예외를 던지지 않는다).
+  private LocalDateTime extractTakenAt(byte[] bytes) {
+    try {
+      Metadata metadata = ImageMetadataReader.readMetadata(new ByteArrayInputStream(bytes));
+      ExifSubIFDDirectory directory = metadata.getFirstDirectoryOfType(ExifSubIFDDirectory.class);
+      if (directory == null) {
+        return null;
+      }
+      Date takenAt = directory.getDateOriginal(TimeZone.getTimeZone(SEOUL));
+      return takenAt == null ? null : LocalDateTime.ofInstant(takenAt.toInstant(), SEOUL);
+    } catch (ImageProcessingException | IOException e) {
+      return null;
+    }
+  }
+
+  private String sha256Hex(byte[] bytes) {
+    try {
+      byte[] hash = MessageDigest.getInstance("SHA-256").digest(bytes);
+      return HexFormat.of().formatHex(hash);
+    } catch (NoSuchAlgorithmException e) {
+      // SHA-256은 표준 JDK에 항상 존재하므로 사실상 도달 불가.
+      throw new CustomException(GlobalErrorCode.SERVER_ERROR, e);
+    }
+  }
+}
