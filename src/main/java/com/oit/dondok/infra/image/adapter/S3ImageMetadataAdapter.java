@@ -71,8 +71,11 @@ public class S3ImageMetadataAdapter implements ImageMetadataPort {
     }
   }
 
-  // EXIF DateTimeOriginal(촬영 시각)을 Asia/Seoul offset 기준 OffsetDateTime으로 추출한다.
-  // EXIF가 없거나 파싱 실패 시 null을 반환한다 (1단계는 signal만 다루므로 예외를 던지지 않는다).
+  // EXIF DateTimeOriginal을 "촬영 절대 시각"으로 해석해 Asia/Seoul offset으로 표현한다.
+  // getDateOriginal(TimeZone): EXIF에 offset 태그가 있으면 그 offset으로 절대 시각(instant)을 계산하고,
+  // 없으면 전달한 SEOUL을 폴백으로 사용한다. 즉 EXIF의 로컬 벽시계를 그대로 보존하는 게 아니라,
+  // 촬영 절대 시각을 KST로 환산해 보관한다. (미션 인정 윈도우/ server_time과 절대 시각 기준으로 비교하기 위함)
+  // EXIF가 없거나 파싱 실패 시 null을 반환한다 (signal만 다루므로 예외를 던지지 않는다).
   private OffsetDateTime extractTakenAt(byte[] bytes) {
     try {
       Metadata metadata = ImageMetadataReader.readMetadata(new ByteArrayInputStream(bytes));
