@@ -13,8 +13,7 @@ import com.oit.dondok.domain.mission.port.ImageMetadataPort;
 import com.oit.dondok.domain.mission.repository.MissionLogRepository;
 import com.oit.dondok.domain.mission.repository.MissionRuleRepository;
 import com.oit.dondok.global.exception.CustomException;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -49,7 +48,7 @@ public class MissionImageService {
   // 원본 이미지에서 EXIF 시각, 해시를 추출하고 risk signal(ExifRisk, 중복)을 산출
   @Transactional(readOnly = true)
   public ImageVerifyResponse getImageVerifyResponse(
-      Long crewId, String s3Key, LocalDateTime serverTime) {
+      Long crewId, String s3Key, OffsetDateTime serverTime) {
     ImageMetadata metadata = imageMetadataPort.extract(s3Key);
 
     // 크루의 미션 규칙에서 인증마감 기준을 가져온다
@@ -66,14 +65,18 @@ public class MissionImageService {
   }
 
   private ExifRisk classifyExifRisk(
-      LocalDateTime takenAt, LocalDateTime serverTime, DailySettlementType type) {
+      OffsetDateTime takenAt, OffsetDateTime serverTime, DailySettlementType type) {
     if (takenAt == null) {
       return ExifRisk.MISSING;
     }
     // 인증 대상 날짜는 server_time(Asia/Seoul) 기준. 윈도우 = [당일 00:00, 당일 인증마감]
-    LocalDate missionDate = serverTime.toLocalDate();
-    LocalDateTime windowStart = missionDate.atStartOfDay();
-    LocalDateTime deadline = missionDate.atTime(type.getCertificationDeadline());
+    OffsetDateTime windowStart =
+        serverTime.toLocalDate().atStartOfDay().atOffset(serverTime.getOffset());
+    OffsetDateTime deadline =
+        serverTime
+            .toLocalDate()
+            .atTime(type.getCertificationDeadline())
+            .atOffset(serverTime.getOffset());
     // 마감 이후 또는 server_time(제출 시각) 이후에 찍힌 사진은 인정 윈도우 밖
     if (takenAt.isBefore(windowStart) || takenAt.isAfter(deadline) || takenAt.isAfter(serverTime)) {
       return ExifRisk.TIME_INVALID;

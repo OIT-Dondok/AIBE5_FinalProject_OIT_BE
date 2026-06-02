@@ -13,7 +13,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.Date;
 import java.util.HexFormat;
@@ -54,9 +54,9 @@ public class S3ImageMetadataAdapter implements ImageMetadataPort {
     }
   }
 
-  // EXIF DateTimeOriginal(촬영 시각)을 Asia/Seoul 기준 LocalDateTime으로 추출한다.
+  // EXIF DateTimeOriginal(촬영 시각)을 Asia/Seoul offset 기준 OffsetDateTime으로 추출한다.
   // EXIF가 없거나 파싱 실패 시 null을 반환한다 (1단계는 signal만 다루므로 예외를 던지지 않는다).
-  private LocalDateTime extractTakenAt(byte[] bytes) {
+  private OffsetDateTime extractTakenAt(byte[] bytes) {
     try {
       Metadata metadata = ImageMetadataReader.readMetadata(new ByteArrayInputStream(bytes));
       ExifSubIFDDirectory directory = metadata.getFirstDirectoryOfType(ExifSubIFDDirectory.class);
@@ -64,7 +64,7 @@ public class S3ImageMetadataAdapter implements ImageMetadataPort {
         return null;
       }
       Date takenAt = directory.getDateOriginal(TimeZone.getTimeZone(SEOUL));
-      return takenAt == null ? null : LocalDateTime.ofInstant(takenAt.toInstant(), SEOUL);
+      return takenAt == null ? null : OffsetDateTime.ofInstant(takenAt.toInstant(), SEOUL);
     } catch (ImageProcessingException | IOException e) {
       return null;
     }

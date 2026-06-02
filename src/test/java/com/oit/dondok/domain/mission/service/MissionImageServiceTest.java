@@ -22,7 +22,8 @@ import com.oit.dondok.domain.mission.port.ImageMetadataPort;
 import com.oit.dondok.domain.mission.repository.MissionLogRepository;
 import com.oit.dondok.domain.mission.repository.MissionRuleRepository;
 import com.oit.dondok.global.exception.CustomException;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -37,7 +38,9 @@ class MissionImageServiceTest {
   private static final UUID MEMBER_UUID = UUID.fromString("018f4fd2-6d7a-7a41-9f58-6d07f5c3c901");
   private static final Long CREW_ID = 42L;
   private static final Long PARTICIPANT_ID = 101L;
-  private static final String S3_KEY = "mission/42/101/abc";
+  private static final String MISSION_IMAGE_OBJECT_KEY_FIXTURE =
+      "mission/42/101/test-image-object-key";
+  private static final ZoneOffset KST = ZoneOffset.ofHours(9);
 
   @Mock private CrewParticipantRepository crewParticipantRepository;
   @Mock private ImageMetadataPort imageMetadataPort;
@@ -105,7 +108,7 @@ class MissionImageServiceTest {
 
     ImageVerifyResponse result =
         missionImageService.getImageVerifyResponse(
-            CREW_ID, S3_KEY, LocalDateTime.of(2026, 6, 2, 8, 30));
+            CREW_ID, MISSION_IMAGE_OBJECT_KEY_FIXTURE, kst(6, 2, 8, 30));
 
     assertThat(result.exifRisk()).isEqualTo(ExifRisk.MISSING);
     assertThat(result.takenAt()).isNull();
@@ -116,13 +119,13 @@ class MissionImageServiceTest {
   // 촬영 시각이 [당일 00:00, 마감] 안이고 server_time 이전이면 ExifRisk.NORMAL.
   @Test
   void getImageVerifyResponseReturnsNormalWithinWindow() {
-    givenExtracted(LocalDateTime.of(2026, 6, 2, 8, 0), "hash-1");
+    givenExtracted(kst(6, 2, 8, 0), "hash-1");
     givenMissionRule(DailySettlementType.A); // 인증마감 09:00
     givenDuplicate(false);
 
     ImageVerifyResponse result =
         missionImageService.getImageVerifyResponse(
-            CREW_ID, S3_KEY, LocalDateTime.of(2026, 6, 2, 8, 30));
+            CREW_ID, MISSION_IMAGE_OBJECT_KEY_FIXTURE, kst(6, 2, 8, 30));
 
     assertThat(result.exifRisk()).isEqualTo(ExifRisk.NORMAL);
   }
@@ -130,13 +133,13 @@ class MissionImageServiceTest {
   // 촬영 시각이 인증 당일 00:00 이전(전날)이면 ExifRisk.TIME_INVALID.
   @Test
   void getImageVerifyResponseReturnsTimeInvalidWhenTakenBeforeMissionDay() {
-    givenExtracted(LocalDateTime.of(2026, 6, 1, 23, 0), "hash-1");
+    givenExtracted(kst(6, 1, 23, 0), "hash-1");
     givenMissionRule(DailySettlementType.A);
     givenDuplicate(false);
 
     ImageVerifyResponse result =
         missionImageService.getImageVerifyResponse(
-            CREW_ID, S3_KEY, LocalDateTime.of(2026, 6, 2, 8, 30));
+            CREW_ID, MISSION_IMAGE_OBJECT_KEY_FIXTURE, kst(6, 2, 8, 30));
 
     assertThat(result.exifRisk()).isEqualTo(ExifRisk.TIME_INVALID);
   }
@@ -144,13 +147,13 @@ class MissionImageServiceTest {
   // 촬영 시각이 인증마감 이후면 ExifRisk.TIME_INVALID (지각 제출 케이스).
   @Test
   void getImageVerifyResponseReturnsTimeInvalidWhenTakenAfterDeadline() {
-    givenExtracted(LocalDateTime.of(2026, 6, 2, 9, 30), "hash-1"); // 마감 09:00 이후
+    givenExtracted(kst(6, 2, 9, 30), "hash-1"); // 마감 09:00 이후
     givenMissionRule(DailySettlementType.A);
     givenDuplicate(false);
 
     ImageVerifyResponse result =
         missionImageService.getImageVerifyResponse(
-            CREW_ID, S3_KEY, LocalDateTime.of(2026, 6, 2, 10, 0));
+            CREW_ID, MISSION_IMAGE_OBJECT_KEY_FIXTURE, kst(6, 2, 10, 0));
 
     assertThat(result.exifRisk()).isEqualTo(ExifRisk.TIME_INVALID);
   }
@@ -158,13 +161,13 @@ class MissionImageServiceTest {
   // 촬영 시각이 server_time(제출 시각) 이후면 ExifRisk.TIME_INVALID (물리적으로 불가능).
   @Test
   void getImageVerifyResponseReturnsTimeInvalidWhenTakenAfterServerTime() {
-    givenExtracted(LocalDateTime.of(2026, 6, 2, 8, 30), "hash-1"); // server_time 이후, 마감 이전
+    givenExtracted(kst(6, 2, 8, 30), "hash-1"); // server_time 이후, 마감 이전
     givenMissionRule(DailySettlementType.A);
     givenDuplicate(false);
 
     ImageVerifyResponse result =
         missionImageService.getImageVerifyResponse(
-            CREW_ID, S3_KEY, LocalDateTime.of(2026, 6, 2, 8, 0));
+            CREW_ID, MISSION_IMAGE_OBJECT_KEY_FIXTURE, kst(6, 2, 8, 0));
 
     assertThat(result.exifRisk()).isEqualTo(ExifRisk.TIME_INVALID);
   }
@@ -172,13 +175,13 @@ class MissionImageServiceTest {
   // 같은 크루에 동일 해시가 있으면 duplicate=true.
   @Test
   void getImageVerifyResponseFlagsDuplicateWhenHashExistsInCrew() {
-    givenExtracted(LocalDateTime.of(2026, 6, 2, 8, 0), "hash-1");
+    givenExtracted(kst(6, 2, 8, 0), "hash-1");
     givenMissionRule(DailySettlementType.A);
     givenDuplicate(true);
 
     ImageVerifyResponse result =
         missionImageService.getImageVerifyResponse(
-            CREW_ID, S3_KEY, LocalDateTime.of(2026, 6, 2, 8, 30));
+            CREW_ID, MISSION_IMAGE_OBJECT_KEY_FIXTURE, kst(6, 2, 8, 30));
 
     assertThat(result.duplicate()).isTrue();
   }
@@ -186,19 +189,19 @@ class MissionImageServiceTest {
   // 크루의 미션 규칙이 없으면 MISSION_RULE_NOT_FOUND.
   @Test
   void getImageVerifyResponseThrowsWhenMissionRuleNotFound() {
-    givenExtracted(LocalDateTime.of(2026, 6, 2, 8, 0), "hash-1");
+    givenExtracted(kst(6, 2, 8, 0), "hash-1");
     given(missionRuleRepository.findByCrewId(CREW_ID)).willReturn(Optional.empty());
 
     assertThatThrownBy(
             () ->
                 missionImageService.getImageVerifyResponse(
-                    CREW_ID, S3_KEY, LocalDateTime.of(2026, 6, 2, 8, 30)))
+                    CREW_ID, MISSION_IMAGE_OBJECT_KEY_FIXTURE, kst(6, 2, 8, 30)))
         .isInstanceOf(CustomException.class)
         .extracting("errorCode")
         .isEqualTo(MissionErrorCode.MISSION_RULE_NOT_FOUND);
   }
 
-  private void givenExtracted(LocalDateTime takenAt, String hash) {
+  private void givenExtracted(OffsetDateTime takenAt, String hash) {
     given(imageMetadataPort.extract(anyString())).willReturn(new ImageMetadata(takenAt, hash));
   }
 
@@ -211,6 +214,10 @@ class MissionImageServiceTest {
   private void givenDuplicate(boolean duplicate) {
     given(missionLogRepository.existsByCrewParticipantCrewIdAndImageHash(anyLong(), anyString()))
         .willReturn(duplicate);
+  }
+
+  private static OffsetDateTime kst(int month, int day, int hour, int minute) {
+    return OffsetDateTime.of(2026, month, day, hour, minute, 0, 0, KST);
   }
 
   private static CrewParticipant participantOf(UUID memberUuid, Long crewId) {
