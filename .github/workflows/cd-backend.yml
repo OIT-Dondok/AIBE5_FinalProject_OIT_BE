@@ -1,0 +1,172 @@
+name: Backend CD
+
+on:
+  workflow_run:
+    workflows:
+      - CI
+    types:
+      - completed
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-prod-deploy
+  cancel-in-progress: false
+
+env:
+  APP_ROOT: /opt/dondok
+  DOCKER_IMAGE_NAME: dondok-backend
+
+jobs:
+  deploy:
+    name: Build image and deploy backend
+    runs-on: ubuntu-latest
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main'
+
+    steps:
+      - name: Checkout CI head commit
+        uses: actions/checkout@v6.0.2
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+
+      - name: Validate deployment secrets
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          ENV_PROD: ${{ secrets.ENV_PROD }}
+        run: |
+          set -euo pipefail
+
+          required_vars=(
+            DOCKERHUB_USERNAME
+            DOCKERHUB_TOKEN
+            EC2_HOST
+            EC2_USERNAME
+            EC2_SSH_KEY
+            ENV_PROD
+          )
+
+          for var_name in "${required_vars[@]}"; do
+            if [ -z "${!var_name:-}" ]; then
+              echo "::error::Missing required secret: ${var_name}"
+              exit 1
+            fi
+          done
+
+      - name: Set deployment variables
+        run: |
+          set -euo pipefail
+          echo "DEPLOY_SHA=${{ github.event.workflow_run.head_sha }}" >> "${GITHUB_ENV}"
+          echo "DOCKER_IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/${DOCKER_IMAGE_NAME}:${{ github.event.workflow_run.head_sha }}" >> "${GITHUB_ENV}"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DOCKER_IMAGE_NAME }}:latest
+            ${{ env.DOCKER_IMAGE }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Configure SSH
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${EC2_SSH_KEY}" > ~/.ssh/dondok_ec2
+          chmod 600 ~/.ssh/dondok_ec2
+          ssh-keyscan -H "${EC2_HOST}" >> ~/.ssh/known_hosts
+
+      - name: Prepare EC2 directories
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/dondok_ec2 "${EC2_USERNAME}@${EC2_HOST}" "
+            set -euo pipefail
+            sudo mkdir -p ${APP_ROOT}/deploy ${APP_ROOT}/nginx ${APP_ROOT}/config ${APP_ROOT}/logs ${APP_ROOT}/releases
+            sudo chown -R ${EC2_USERNAME}:${EC2_USERNAME} ${APP_ROOT}
+          "
+
+      - name: Upload deployment files
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
+        run: |
+          set -euo pipefail
+          scp -i ~/.ssh/dondok_ec2 deploy/*.sh "${EC2_USERNAME}@${EC2_HOST}:${APP_ROOT}/deploy/"
+          scp -i ~/.ssh/dondok_ec2 nginx/*-upstream.conf "${EC2_USERNAME}@${EC2_HOST}:${APP_ROOT}/nginx/"
+          scp -i ~/.ssh/dondok_ec2 src/main/resources/application-prod.yml "${EC2_USERNAME}@${EC2_HOST}:${APP_ROOT}/config/application-prod.yml"
+
+          ssh -i ~/.ssh/dondok_ec2 "${EC2_USERNAME}@${EC2_HOST}" "
+            set -euo pipefail
+            chmod 700 ${APP_ROOT}/deploy/*.sh
+            if [ ! -L ${APP_ROOT}/nginx/active-upstream.conf ]; then
+              ln -sfn ${APP_ROOT}/nginx/blue-upstream.conf ${APP_ROOT}/nginx/active-upstream.conf
+            fi
+          "
+
+      - name: Upload production environment
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
+          ENV_PROD: ${{ secrets.ENV_PROD }}
+        run: |
+          set -euo pipefail
+          printf '%s' "${ENV_PROD}" | base64 -w 0 > env-prod.b64
+          scp -i ~/.ssh/dondok_ec2 env-prod.b64 "${EC2_USERNAME}@${EC2_HOST}:/tmp/dondok-env-prod.b64"
+
+          ssh -i ~/.ssh/dondok_ec2 "${EC2_USERNAME}@${EC2_HOST}" "
+            set -euo pipefail
+            base64 -d /tmp/dondok-env-prod.b64 | tr -d '\r' > ${APP_ROOT}/.env
+            chmod 600 ${APP_ROOT}/.env
+            rm -f /tmp/dondok-env-prod.b64
+            ${APP_ROOT}/deploy/validate-env.sh ${APP_ROOT}/.env
+            ${APP_ROOT}/deploy/validate-runtime.sh ${APP_ROOT}/.env
+          "
+
+      - name: Login Docker Hub on EC2
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
+        run: |
+          set -euo pipefail
+          printf '%s' "${DOCKERHUB_TOKEN}" | ssh -i ~/.ssh/dondok_ec2 "${EC2_USERNAME}@${EC2_HOST}" \
+            "docker login -u '${DOCKERHUB_USERNAME}' --password-stdin"
+
+      - name: Deploy backend blue-green
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
+          ENTRYPOINT_HEALTH_URL: ${{ secrets.ENTRYPOINT_HEALTH_URL }}
+          SMOKE_TEST_URL: ${{ secrets.SMOKE_TEST_URL }}
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/dondok_ec2 "${EC2_USERNAME}@${EC2_HOST}" \
+            "ENTRYPOINT_HEALTH_URL='${ENTRYPOINT_HEALTH_URL}' SMOKE_TEST_URL='${SMOKE_TEST_URL}' ${APP_ROOT}/deploy/switch-blue-green.sh '${DOCKER_IMAGE}' '${DEPLOY_SHA}'"
