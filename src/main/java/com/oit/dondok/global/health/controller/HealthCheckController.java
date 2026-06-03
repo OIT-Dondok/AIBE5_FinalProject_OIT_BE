@@ -1,4 +1,4 @@
-package com.oit.dondok.global.health;
+package com.oit.dondok.global.health.controller;
 
 import java.util.Map;
 import org.springframework.http.CacheControl;
