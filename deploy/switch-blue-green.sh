@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# 백엔드 API Blue/Green 배포 스크립트다.
+# inactive slot을 실행하고 readiness를 검증한 뒤 Nginx upstream을 전환한다.
+# 전환 후 외부 entrypoint를 확인하고, 모든 검증이 끝나면 이전 slot을 종료한다.
+
 APP_ROOT="${APP_ROOT:-/opt/dondok}"
 ENV_FILE="${ENV_FILE:-${APP_ROOT}/.env}"
 CONFIG_FILE="${CONFIG_FILE:-${APP_ROOT}/config/application-prod.yml}"
@@ -59,6 +63,11 @@ slot_port() {
   esac
 }
 
+container_running() {
+  [ "$(docker inspect -f '{{.State.Running}}' "api-$1" 2>/dev/null || true)" = "true" ]
+}
+
+# active slot은 Nginx symlink가 가리키는 slot과 실제 실행 중인 컨테이너가 일치할 때만 인정한다.
 detect_active_slot() {
   if [ ! -L "${ACTIVE_UPSTREAM}" ]; then
     echo ""
@@ -67,12 +76,26 @@ detect_active_slot() {
 
   target="$(readlink -f "${ACTIVE_UPSTREAM}")"
   case "${target}" in
-    "$(readlink -f "${BLUE_UPSTREAM}")") echo "blue" ;;
-    "$(readlink -f "${GREEN_UPSTREAM}")") echo "green" ;;
+    "$(readlink -f "${BLUE_UPSTREAM}")")
+      if container_running blue; then
+        echo "blue"
+      else
+        echo ""
+      fi
+      ;;
+    "$(readlink -f "${GREEN_UPSTREAM}")")
+      if container_running green; then
+        echo "green"
+      else
+        echo ""
+      fi
+      ;;
     *) echo "" ;;
   esac
 }
 
+# 실패 시 이전 upstream으로 복구한다.
+# 최초 배포에서는 초기 정책대로 active-upstream을 blue 기준으로 유지한다.
 rollback_upstream() {
   if [ -n "${BACKUP_UPSTREAM}" ]; then
     log "rollback upstream to ${BACKUP_UPSTREAM}"
@@ -80,9 +103,13 @@ rollback_upstream() {
     if run_as_root nginx -t; then
       reload_nginx || true
     fi
+  else
+    log "rollback upstream to initial blue upstream"
+    ln -sfn "${BLUE_UPSTREAM}" "${ACTIVE_UPSTREAM}"
   fi
 }
 
+# 컨테이너 실행 또는 Nginx 전환 이후 실패하면 새 slot을 정리하고 이전 upstream으로 복구한다.
 cleanup_on_error() {
   exit_code=$?
   if [ "${exit_code}" -eq 0 ]; then
@@ -106,10 +133,15 @@ trap cleanup_on_error EXIT
 
 mkdir -p "${APP_ROOT}/logs" "${RELEASE_DIR}"
 
+# 컨테이너를 건드리기 전에 운영 env와 필수 런타임 입력을 검증한다.
 "${VALIDATE_ENV}" "${ENV_FILE}"
 
 if [ ! -f "${CONFIG_FILE}" ]; then
   fail "application-prod.yml not found: ${CONFIG_FILE}"
+fi
+
+if [ -z "${ENTRYPOINT_HEALTH_URL:-}" ]; then
+  fail "ENTRYPOINT_HEALTH_URL is required to verify the Nginx/API entrypoint after traffic switch"
 fi
 
 ACTIVE_SLOT="$(detect_active_slot)"
@@ -126,11 +158,14 @@ log "active slot: ${ACTIVE_SLOT:-none}"
 log "next slot: ${NEXT_SLOT}"
 log "image: ${IMAGE}"
 
+# CD workflow가 전달한 SHA tag 이미지를 기준으로 배포한다.
 docker pull "${IMAGE}"
 
+# host port 충돌을 막기 위해 inactive slot의 기존 컨테이너를 먼저 제거한다.
 log "remove stale inactive container: api-${NEXT_SLOT}"
 docker rm -f "api-${NEXT_SLOT}" >/dev/null 2>&1 || true
 
+# 새 slot은 localhost에만 bind한다. 외부 트래픽은 반드시 Nginx를 통해 들어온다.
 log "start new container: api-${NEXT_SLOT}"
 docker run -d \
   --name "api-${NEXT_SLOT}" \
@@ -147,15 +182,16 @@ docker run -d \
 
 NEW_CONTAINER_STARTED=true
 
+# readiness는 애플리케이션 상태와 필수 외부 의존성을 함께 검증한다.
 READINESS_URL="http://127.0.0.1:${NEXT_PORT}/api/actuator/health/readiness"
 "${HEALTH_CHECK}" "${READINESS_URL}" 24 5 3
 
+# 이 시점 이후 실패하면 rollback할 수 있도록 현재 upstream을 백업한다.
 if [ -L "${ACTIVE_UPSTREAM}" ]; then
   BACKUP_UPSTREAM="$(readlink -f "${ACTIVE_UPSTREAM}")"
-else
-  BACKUP_UPSTREAM="$(readlink -f "${BLUE_UPSTREAM}")"
 fi
 
+# active upstream symlink를 새 slot으로 교체한 뒤 Nginx 설정을 검증하고 reload한다.
 log "switch nginx upstream to ${NEXT_SLOT}"
 ln -sfn "${NGINX_DIR}/${NEXT_SLOT}-upstream.conf" "${ACTIVE_UPSTREAM}"
 SWITCHED=true
@@ -163,9 +199,10 @@ SWITCHED=true
 run_as_root nginx -t
 reload_nginx
 
-ENTRYPOINT_HEALTH_URL="${ENTRYPOINT_HEALTH_URL:-http://127.0.0.1:${NEXT_PORT}/api/health}"
+# 트래픽 전환 후 실제 Nginx/API entrypoint 기준으로 health를 확인한다.
 "${HEALTH_CHECK}" "${ENTRYPOINT_HEALTH_URL}" 12 5 3
 
+# 사용자 관점의 S3 업로드/다운로드 동작을 확인하는 선택 smoke test다.
 SMOKE_TEST_URL="${SMOKE_TEST_URL:-}"
 if [ -n "${SMOKE_TEST_URL}" ]; then
   "${HEALTH_CHECK}" "${SMOKE_TEST_URL}" 6 5 3
@@ -173,11 +210,13 @@ else
   log "S3 upload/download smoke test URL not configured; skipping"
 fi
 
+# 전환 이후 모든 검증이 성공한 뒤에만 이전 active slot을 종료한다.
 if [ -n "${ACTIVE_SLOT}" ]; then
   log "stop old container: api-${ACTIVE_SLOT}"
   docker rm -f "api-${ACTIVE_SLOT}" >/dev/null 2>&1 || true
 fi
 
+# rollback과 감사 추적을 위해 배포 SHA 기록을 남긴다.
 if [ -f "${DEPLOYED_SHA_FILE}" ]; then
   cp "${DEPLOYED_SHA_FILE}" "${PREVIOUS_SHA_FILE}"
 fi
