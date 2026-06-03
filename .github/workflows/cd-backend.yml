@@ -10,6 +10,7 @@ on:
       - completed
     branches:
       - main
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -30,18 +31,21 @@ jobs:
   deploy:
     name: Build image and deploy backend
     runs-on: ubuntu-latest
-    # workflow_run trigger를 한 번 더 방어한다.
-    # main 브랜치 CI가 성공한 경우가 아니면 배포하지 않는다.
+    # workflow_run 자동 배포는 main CI 성공일 때만 허용하고,
+    # 테스트 단계에서는 workflow_dispatch 수동 실행도 허용한다.
     if: >
-      github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.head_branch == 'main'
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.head_branch == 'main'
+      )
 
     steps:
-      # CI가 검증한 정확한 commit을 기준으로 Docker image를 만든다.
-      - name: Checkout CI head commit
+      # 자동 배포는 CI가 검증한 commit, 수동 배포는 선택한 브랜치의 현재 commit을 checkout한다.
+      - name: Checkout deploy target commit
         uses: actions/checkout@v6.0.2
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.sha || github.event.workflow_run.head_sha }}
           persist-credentials: false
 
       # 배포에 필요한 secret이 비어 있으면 image build 전에 빠르게 실패시킨다.
@@ -78,8 +82,15 @@ jobs:
       - name: Set deployment variables
         run: |
           set -euo pipefail
-          echo "DEPLOY_SHA=${{ github.event.workflow_run.head_sha }}" >> "${GITHUB_ENV}"
-          echo "DOCKER_IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/${DOCKER_IMAGE_NAME}:${{ github.event.workflow_run.head_sha }}" >> "${GITHUB_ENV}"
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            DEPLOY_TARGET_SHA="${{ github.sha }}"
+          else
+            DEPLOY_TARGET_SHA="${{ github.event.workflow_run.head_sha }}"
+          fi
+
+          echo "DEPLOY_SHA=${DEPLOY_TARGET_SHA}" >> "${GITHUB_ENV}"
+          echo "DOCKER_IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/${DOCKER_IMAGE_NAME}:${DEPLOY_TARGET_SHA}" >> "${GITHUB_ENV}"
 
       # Docker BuildKit/buildx를 사용해 layer cache와 image push를 처리한다.
       - name: Set up Docker Buildx
