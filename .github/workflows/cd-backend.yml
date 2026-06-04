@@ -10,6 +10,8 @@ on:
       - completed
     branches:
       - main
+
+  #수동 실행 허용 (개발단계에서만 허용)
   workflow_dispatch:
 
 permissions:
@@ -32,11 +34,10 @@ jobs:
     name: Build image and deploy backend
     runs-on: ubuntu-latest
     # workflow_run 자동 배포는 main CI 성공일 때만 허용하고,
-    # 테스트 단계에서는 workflow_dispatch 수동 실행도 허용한다.
+    # 테스트 단계에서는 CI 실패해도 허용, 수동 실행 허용
     if: >
       github.event_name == 'workflow_dispatch' ||
       (
-        github.event.workflow_run.conclusion == 'success' &&
         github.event.workflow_run.head_branch == 'main'
       )
 
