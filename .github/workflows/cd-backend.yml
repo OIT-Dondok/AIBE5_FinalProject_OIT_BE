@@ -137,7 +137,7 @@ jobs:
           set -euo pipefail
           ssh -i ~/.ssh/dondok_ec2 "${EC2_USERNAME}@${EC2_HOST}" "
             set -euo pipefail
-            sudo mkdir -p ${APP_ROOT}/deploy ${APP_ROOT}/nginx ${APP_ROOT}/config ${APP_ROOT}/logs ${APP_ROOT}/releases
+            sudo mkdir -p ${APP_ROOT}/deploy ${APP_ROOT}/nginx ${APP_ROOT}/config ${APP_ROOT}/releases
             sudo chown -R ${EC2_USERNAME}:${EC2_USERNAME} ${APP_ROOT}
           "
 

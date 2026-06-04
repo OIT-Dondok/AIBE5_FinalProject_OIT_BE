@@ -131,7 +131,7 @@ cleanup_on_error() {
 
 trap cleanup_on_error EXIT
 
-mkdir -p "${APP_ROOT}/logs" "${RELEASE_DIR}"
+mkdir -p "${RELEASE_DIR}"
 
 # 컨테이너를 건드리기 전에 운영 env와 필수 런타임 입력을 검증한다.
 "${VALIDATE_ENV}" "${ENV_FILE}"
@@ -202,12 +202,12 @@ reload_nginx
 # 트래픽 전환 후 실제 Nginx/API entrypoint 기준으로 health를 확인한다.
 "${HEALTH_CHECK}" "${ENTRYPOINT_HEALTH_URL}" 12 5 3
 
-# 사용자 관점의 S3 업로드/다운로드 동작을 확인하는 선택 smoke test다.
+# SMOKE_TEST_URL은 서버 내부에서 S3 업로드/다운로드/삭제를 수행하는 smoke endpoint를 가리킨다.
 SMOKE_TEST_URL="${SMOKE_TEST_URL:-}"
 if [ -n "${SMOKE_TEST_URL}" ]; then
   "${HEALTH_CHECK}" "${SMOKE_TEST_URL}" 6 5 3
 else
-  log "S3 upload/download smoke test URL not configured; skipping"
+  log "S3 upload/download/delete smoke test URL not configured; skipping"
 fi
 
 # 전환 이후 모든 검증이 성공한 뒤에만 이전 active slot을 종료한다.
