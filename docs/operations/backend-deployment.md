@@ -362,7 +362,7 @@ Backend EC2 IAM Role을 사용할 때는 Docker 컨테이너 내부에서도 EC2
 
 ```text
 http-endpoint: enabled
-http-tokens: required 또는 optional
+http-tokens: required
 http-put-response-hop-limit: 2 이상
 ```
 
