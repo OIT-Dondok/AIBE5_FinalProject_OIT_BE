@@ -100,6 +100,14 @@ require_command docker
 require_command nginx
 require_command curl
 
+run_as_root_dry_run() {
+  if [ "$(id -u)" -eq 0 ]; then
+    "$@"
+  else
+    sudo -n "$@"
+  fi
+}
+
 # 배포 사용자는 컨테이너 pull/run/remove를 수행할 수 있어야 한다.
 docker info >/dev/null 2>&1 || {
   echo "[ERROR] current EC2 user cannot access Docker. Add the user to the docker group and reconnect." >&2
@@ -109,6 +117,11 @@ docker info >/dev/null 2>&1 || {
 # CD는 Nginx 설정 검증과 reload를 위해 nginx 명령만 필요로 한다.
 nginx -v >/dev/null 2>&1 || {
   echo "[ERROR] nginx command is required so CD can run nginx -t and reload after upstream switch. Nginx site and HTTPS certificates must still be managed directly on EC2." >&2
+  exit 1
+}
+
+run_as_root_dry_run nginx -t >/dev/null 2>&1 || {
+  echo "[ERROR] current EC2 user cannot run nginx -t with non-interactive sudo. Configure NOPASSWD sudo for nginx before running CD." >&2
   exit 1
 }
 

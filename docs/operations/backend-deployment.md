@@ -340,7 +340,7 @@ REDIS_PASSWORD=<redis-password>
 
 AWS_REGION=ap-northeast-2
 AWS_S3_BUCKET=<bucket-name>
-AWS_S3_BASE_PREFIX=<optional-prefix>
+AWS_S3_BASE_PREFIX=
 
 JWT_SECRET=<jwt-secret>
 CORS_ALLOWED_ORIGINS=<frontend-domain>
@@ -456,9 +456,18 @@ public class S3HealthIndicator implements HealthIndicator {
 }
 ```
 
-S3 설정은 현재 공통 설정과 동일하게 `spring.cloud.aws.region.static`과 `app.aws.s3.bucket`을 기준으로 한다. prefix는 `app.aws.s3.base-prefix`를 기준으로 추가하고, `ENV_PROD`의 `AWS_S3_BASE_PREFIX`와 연결한다.
+S3 설정은 현재 공통 설정과 동일하게 `spring.cloud.aws.region.static`과 `app.aws.s3.bucket`을 기준으로 한다. 현재 운영 정책에서는 애플리케이션이 생성하는 object key가 `mission/...`, `profile/...`, `crew/...` 형태이므로 `AWS_S3_BASE_PREFIX`는 비워둔다.
 
-모든 S3 object key 생성 로직은 `app.aws.s3.base-prefix`를 먼저 적용한 뒤 도메인별 key를 이어 붙인다. 예를 들어 `AWS_S3_BASE_PREFIX=prod`이면 최종 key는 `prod/mission/...`, `prod/profile/...`, `prod/crew/...` 형태가 된다. 현재 코드처럼 `mission/...`, `profile/...`, `crew/...`를 직접 생성하는 방식은 운영 prefix 정책과 맞지 않으므로, 구현 단계에서 모든 S3 key 생성 지점에 base prefix 적용 로직을 추가한다.
+S3 object key는 도메인별 하위 prefix를 그대로 사용한다.
+
+```text
+mission/{crewId}/{crewParticipantId}/{uuid}
+profile/{memberUuid}/{uuid}
+crew/{memberUuid}/{uuid}
+healthcheck/s3-readiness
+```
+
+따라서 IAM policy는 `prod/*`가 아니라 실제 생성되는 top-level prefix인 `mission/*`, `profile/*`, `crew/*`, `healthcheck/*`를 허용한다. smoke test를 사용하는 경우에는 `smoke-test/*`도 함께 허용한다.
 
 운영 컨테이너가 정상 상태로 판단되기 위해서는 최소한 다음 조건을 만족해야 한다.
 
@@ -676,7 +685,7 @@ S3 smoke test 객체는 운영 데이터와 구분되는 별도 prefix를 사용
 
 ```text
 smoke test object key:
-  <AWS_S3_BASE_PREFIX>/smoke-test/<workflow_run.head_sha>
+  smoke-test/<workflow_run.head_sha>
 
 policy:
   업로드 후 즉시 다운로드 검증
@@ -684,7 +693,7 @@ policy:
   삭제 실패는 경고로 기록하고 배포 성공 여부 판단에는 포함하지 않음
 ```
 
-S3 smoke test key도 운영 base prefix 안에 둔다. 예를 들어 `AWS_S3_BASE_PREFIX=prod`이면 smoke test key는 `prod/smoke-test/<workflow_run.head_sha>`가 된다. 이렇게 하면 IAM policy가 운영 prefix만 허용해도 smoke test가 같은 권한 범위 안에서 동작한다. 삭제 실패를 배포 실패로 보지 않는 이유는 이미 사용자 기능 검증은 끝났고, 테스트 객체 잔류는 서비스 장애보다 정리 작업에 가깝기 때문이다. 단, 같은 prefix에 lifecycle rule을 설정해 오래된 smoke test 객체가 자동 삭제되도록 한다.
+S3 smoke test key는 `smoke-test/<workflow_run.head_sha>` 형태로 둔다. smoke test를 사용하는 경우 IAM policy에 `smoke-test/*`를 별도로 허용한다. 삭제 실패를 배포 실패로 보지 않는 이유는 이미 사용자 기능 검증은 끝났고, 테스트 객체 잔류는 서비스 장애보다 정리 작업에 가깝기 때문이다. 단, 같은 prefix에 lifecycle rule을 설정해 오래된 smoke test 객체가 자동 삭제되도록 한다.
 
 ### Docker Hub 이미지 retention 정책
 
@@ -1186,7 +1195,7 @@ COOKIE_SAME_SITE
 | 필수 | `REDIS_HOST`, `REDIS_PORT` | Redis EC2 접속 정보 |
 | 조건부 필수 | `REDIS_PASSWORD` | Redis 인증을 사용하는 경우 필수 |
 | 필수 | `AWS_REGION`, `AWS_S3_BUCKET` | S3 접근에 필요한 region과 bucket |
-| 선택 | `AWS_S3_BASE_PREFIX` | S3 객체 key prefix를 분리할 때 사용 |
+| 선택 | `AWS_S3_BASE_PREFIX` | 현재 운영 정책에서는 비워둔다. 값을 넣으면 `mission/...` 앞에 prefix가 추가되므로 IAM policy도 함께 바꿔야 한다. |
 | 필수 | `JWT_SECRET` | JWT 서명 secret |
 | 선택 | `JWT_ISSUER` | JWT issuer, 기본값 사용 가능 |
 | 선택 | `JWT_ACCESS_TOKEN_EXPIRATION` | access token 만료 시간, 기본값 사용 가능 |
@@ -1228,17 +1237,18 @@ s3:DeleteObject
 s3:ListBucket
 ```
 
-권한 대상은 전체 S3가 아니라 특정 bucket과 prefix로 제한한다. smoke test key도 `AWS_S3_BASE_PREFIX` 아래에 생성하므로 운영 prefix 권한 범위 안에서 동작해야 한다.
+권한 대상은 전체 S3가 아니라 특정 bucket과 실제 사용 prefix로 제한한다. 현재 운영 정책에서는 `AWS_S3_BASE_PREFIX`를 비우므로 `prod/*`가 아니라 애플리케이션이 직접 생성하는 top-level prefix를 허용한다.
 
 ```text
 allowed object prefix examples:
-  <AWS_S3_BASE_PREFIX>/mission/**
-  <AWS_S3_BASE_PREFIX>/profile/**
-  <AWS_S3_BASE_PREFIX>/crew/**
-  <AWS_S3_BASE_PREFIX>/smoke-test/**
+  mission/**
+  profile/**
+  crew/**
+  healthcheck/**
+  smoke-test/**  <- smoke test를 사용하는 경우
 ```
 
-만약 smoke test key를 운영 prefix 밖에 둘 경우 IAM policy에 smoke test prefix를 별도로 허용해야 한다. 기본 정책은 smoke test prefix도 운영 base prefix 안에 두는 것이다.
+smoke test를 사용하지 않는다면 `smoke-test/**` 권한은 제외해도 된다.
 
 `ENV_PROD`를 EC2에 생성할 때는 GitHub Actions 로그에 값이 출력되지 않도록 한다. 멀티라인 값과 특수문자 손상을 줄이기 위해 기본 전달 방식은 base64 인코딩/디코딩으로 한다.
 
