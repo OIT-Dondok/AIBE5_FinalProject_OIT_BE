@@ -69,7 +69,6 @@ jobs:
             EC2_SSH_KEY
             ENV_PROD
             ENTRYPOINT_HEALTH_URL
-            SMOKE_TEST_URL
           )
 
           for var_name in "${required_vars[@]}"; do
@@ -209,19 +208,24 @@ jobs:
           SMOKE_TEST_URL: ${{ secrets.SMOKE_TEST_URL }}
         run: |
           set -euo pipefail
+          trap 'rm -f deploy-runtime-env' EXIT
+
           {
             printf 'ENTRYPOINT_HEALTH_URL_B64=%s\n' "$(printf '%s' "${ENTRYPOINT_HEALTH_URL}" | base64 -w 0)"
-            printf 'SMOKE_TEST_URL_B64=%s\n' "$(printf '%s' "${SMOKE_TEST_URL}" | base64 -w 0)"
+            if [ -n "${SMOKE_TEST_URL:-}" ]; then
+              printf 'SMOKE_TEST_URL_B64=%s\n' "$(printf '%s' "${SMOKE_TEST_URL}" | base64 -w 0)"
+            fi
           } > deploy-runtime-env
 
           scp -i ~/.ssh/dondok_ec2 deploy-runtime-env "${EC2_USERNAME}@${EC2_HOST}:/tmp/dondok-deploy-runtime-env"
-          rm -f deploy-runtime-env
 
           ssh -i ~/.ssh/dondok_ec2 "${EC2_USERNAME}@${EC2_HOST}" \
             "set -euo pipefail
              trap 'rm -f /tmp/dondok-deploy-runtime-env' EXIT
              ENTRYPOINT_HEALTH_URL_B64=\$(grep '^ENTRYPOINT_HEALTH_URL_B64=' /tmp/dondok-deploy-runtime-env | cut -d= -f2-)
-             SMOKE_TEST_URL_B64=\$(grep '^SMOKE_TEST_URL_B64=' /tmp/dondok-deploy-runtime-env | cut -d= -f2-)
+             SMOKE_TEST_URL_B64=\$(grep '^SMOKE_TEST_URL_B64=' /tmp/dondok-deploy-runtime-env | cut -d= -f2- || true)
              export ENTRYPOINT_HEALTH_URL=\$(printf '%s' \"\${ENTRYPOINT_HEALTH_URL_B64}\" | base64 -d)
-             export SMOKE_TEST_URL=\$(printf '%s' \"\${SMOKE_TEST_URL_B64}\" | base64 -d)
+             if [ -n \"\${SMOKE_TEST_URL_B64}\" ]; then
+               export SMOKE_TEST_URL=\$(printf '%s' \"\${SMOKE_TEST_URL_B64}\" | base64 -d)
+             fi
              ${APP_ROOT}/deploy/switch-blue-green.sh '${DOCKER_IMAGE}' '${DEPLOY_SHA}'"

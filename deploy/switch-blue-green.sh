@@ -216,7 +216,7 @@ if [ -n "${ACTIVE_SLOT}" ]; then
   docker rm -f "api-${ACTIVE_SLOT}" >/dev/null 2>&1 || true
 fi
 
-# rollback과 감사 추적을 위해 배포 SHA 기록을 남긴다.
+# 수동 이전 SHA 재배포와 감사 추적을 위해 배포 SHA 기록을 남긴다.
 if [ -f "${DEPLOYED_SHA_FILE}" ]; then
   cp "${DEPLOYED_SHA_FILE}" "${PREVIOUS_SHA_FILE}"
 fi

@@ -668,7 +668,7 @@ S3 검증 정책은 다음과 같다.
 | --- | --- |
 | 기본 정책 | S3 custom `HealthIndicator`를 구현하고 readiness group에 포함한다. |
 | 보조 정책 | Nginx 전환 후에도 이전 slot을 종료하기 전에 S3 upload/download smoke test를 추가로 수행한다. |
-| 실패 처리 | custom health check가 실패하면 Nginx 전환을 금지한다. smoke test가 실패하면 즉시 이전 upstream으로 rollback하고 `nginx -t` 성공 후 Nginx를 reload한다. |
+| 실패 처리 | custom health check가 실패하면 Nginx 전환을 금지한다. smoke test가 실패하면 배포 스크립트가 즉시 이전 upstream으로 자동 복구하고 `nginx -t` 성공 후 Nginx를 reload한다. |
 
 S3 custom `HealthIndicator`는 readiness group에 포함되므로 CD 순서의 14번 readiness check에서 함께 검증된다. 별도의 S3 health check 요청을 추가로 실행하지 않는다. 그래도 배포 후에는 이전 slot을 종료하기 전에 실제 업로드/다운로드 API smoke test를 수행해 사용자 관점의 S3 기능을 확인한다. smoke test 실패 시에는 이전 slot이 살아 있는 상태에서 `active-upstream.conf`를 이전 slot으로 복구하고, `nginx -t` 검증 성공 후 Nginx를 reload한다.
 
@@ -841,7 +841,6 @@ EC2 배포 루트 디렉터리는 `/opt/dondok`으로 고정한다.
   deploy/
     switch-blue-green.sh
     health-check.sh
-    rollback.sh
     validate-env.sh
   nginx/
     active-upstream.conf
@@ -849,7 +848,6 @@ EC2 배포 루트 디렉터리는 `/opt/dondok`으로 고정한다.
     green-upstream.conf
   logs/
     deploy.log
-    rollback.log
   releases/
     deployed-sha.txt
     previous-sha.txt
@@ -991,7 +989,7 @@ ln -sfn /opt/dondok/nginx/blue-upstream.conf \
 
 `active-upstream.conf`는 blue 또는 green upstream 설정을 가리키는 symlink로 관리하는 것을 권장한다. 전환 전 기존 symlink를 백업하고, `nginx -t` 실패 시 백업 symlink로 복구한다.
 
-symlink 변경 이후 `nginx -t`를 실행하면 새 upstream 설정을 기준으로 검증한다. 따라서 실패 시 복구가 반드시 보장되어야 한다. 배포 스크립트는 명시적인 rollback 함수 또는 `trap`을 사용해 `nginx -t`, `nginx reload`, entrypoint health check, S3 smoke test 실패 시 이전 symlink로 복구할 수 있어야 한다.
+symlink 변경 이후 `nginx -t`를 실행하면 새 upstream 설정을 기준으로 검증한다. 따라서 실패 시 복구가 반드시 보장되어야 한다. 배포 스크립트는 명시적인 복구 함수와 `trap`을 사용해 `nginx -t`, `nginx reload`, entrypoint health check, S3 smoke test 실패 시 이전 symlink로 복구할 수 있어야 한다.
 
 ```bash
 BACKUP_UPSTREAM=$(readlink /opt/dondok/nginx/active-upstream.conf)
@@ -1117,7 +1115,9 @@ nginx reload 실패
 entrypoint health check 실패
 ```
 
-롤백 시 이전 SHA는 다음 순서로 확인한다.
+수동 복구가 필요한 경우에는 slot만 되돌리지 않는다. 이전 slot 컨테이너는 정상 배포 완료 후 종료되므로, 수동 복구는 이전 commit SHA 이미지를 다시 배포하는 방식으로 수행한다.
+
+이전 SHA는 다음 순서로 확인한다.
 
 ```text
 1. CD 실행 로그
@@ -1126,7 +1126,7 @@ entrypoint health check 실패
 4. /opt/dondok/releases/deployed-sha.txt
 ```
 
-`deployed-sha.txt`와 `previous-sha.txt`는 롤백을 돕는 보조 기록이다. SHA 기록은 CD의 마지막 단계이므로, Nginx 전환과 smoke test가 이미 성공하고 이전 slot까지 종료된 뒤 기록만 실패한 경우 배포 자체는 성공으로 본다. 이때 CD 로그에는 `WARN`을 남기고, 다음 배포 전 체크리스트에서 SHA 파일을 수동 복구했는지 확인한다.
+`deployed-sha.txt`와 `previous-sha.txt`는 수동 이전 SHA 재배포를 돕는 보조 기록이다. SHA 기록은 CD의 마지막 단계이므로, Nginx 전환과 smoke test가 이미 성공하고 이전 slot까지 종료된 뒤 기록만 실패한 경우 배포 자체는 성공으로 본다. 이때 CD 로그에는 `WARN`을 남기고, 다음 배포 전 체크리스트에서 SHA 파일을 수동 복구했는지 확인한다.
 
 ```text
 deployed-sha 기록 실패 정책:
@@ -1300,11 +1300,11 @@ HTTP 5xx 수
 | RDS 연결 실패 | Nginx 전환 금지, 새 컨테이너 중지 |
 | Redis 연결 실패 | Redis가 필수이면 Nginx 전환 금지 |
 | S3 HealthIndicator 실패 | Nginx 전환 금지 |
-| S3 smoke test 실패 | 이전 upstream으로 rollback, `nginx -t` 성공 후 Nginx reload |
+| S3 smoke test 실패 | 배포 스크립트가 이전 upstream으로 자동 복구하고 `nginx -t` 성공 후 Nginx reload |
 | 최초 배포 실패 | `active-upstream.conf`는 blue를 유지하지만 `api-blue`가 제거될 수 있으므로 외부 요청은 502 가능, 원인 해결 후 CD 재실행 |
 | nginx -t 실패 | reload 금지, 이전 upstream 유지 |
 | nginx reload 실패 | 이전 upstream 복구 후 reload 재시도, 필요 시 restart와 수동 개입 |
-| entrypoint health check 실패 | 이전 upstream으로 rollback, 새 컨테이너 중지 |
+| entrypoint health check 실패 | 배포 스크립트가 이전 upstream으로 자동 복구하고 새 컨테이너 중지 |
 | deployed-sha 기록 실패 | 배포 성공으로 보되 WARN 기록, 다음 배포 전 수동 복구 |
 
 ## 15. 운영 체크리스트
@@ -1417,7 +1417,7 @@ Certbot timer 상태 확인
 10. Nginx 전환은 RDS, Redis, S3 custom HealthIndicator를 포함한 readiness 성공 후에만 수행한다.
 11. Nginx upstream 전환 전 BACKUP_UPSTREAM을 저장하고, 이후 실패 시 반드시 복구한다.
 12. Nginx는 nginx -t 성공 후에만 reload한다.
-13. 전환 실패 시 기존 slot으로 rollback한다.
+13. 전환 실패 시 배포 스크립트가 기존 upstream으로 자동 복구한다.
 14. 실제 배포 버전은 commit SHA로 추적한다.
 15. 초기 개발 단계에서는 GitHub-hosted runner와 SSH 배포를 사용하고, 운영 전환 시 Self-hosted runner로 교체해 22번 포트를 제한한다.
 ```
