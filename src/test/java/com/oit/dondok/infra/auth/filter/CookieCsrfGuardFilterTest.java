@@ -3,7 +3,6 @@ package com.oit.dondok.infra.auth.filter;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.oit.dondok.infra.auth.filter.CookieCsrfGuardFilter;
 import com.oit.dondok.infra.auth.handler.SecurityErrorHandler;
 import java.util.List;
 import org.junit.jupiter.api.Test;

@@ -6,8 +6,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.oit.dondok.domain.auth.exception.AuthErrorCode;
 import com.oit.dondok.domain.auth.service.TokenPayload;
 import com.oit.dondok.global.exception.CustomException;
-import com.oit.dondok.infra.auth.token.JjwtTokenProvider;
-import com.oit.dondok.infra.auth.token.JwtTokenProperties;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
