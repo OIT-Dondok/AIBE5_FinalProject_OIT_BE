@@ -49,7 +49,7 @@ public class MemberProfileController {
     return ResponseEntity.ok(response);
   }
 
-  @Operation(summary = "주최 활동 요약 조회", description = "로그인한 회원이 주최한 크루 운영 요약을 조회합니다.")
+  @Operation(summary = "크루 운영 요약 조회", description = "로그인한 회원이 관리 중인 크루의 대기 현황을 조회합니다.")
   @GetMapping("/host-operation-summary")
   public ResponseEntity<HostOperationSummaryResponse> getHostOperationSummary(
       @AuthenticationPrincipal UUID memberUuid) {
