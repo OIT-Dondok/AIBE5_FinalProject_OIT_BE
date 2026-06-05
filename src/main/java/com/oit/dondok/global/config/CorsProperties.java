@@ -12,7 +12,12 @@ public record CorsProperties(List<String> allowedOrigins) {
     }
 
     allowedOrigins =
-        allowedOrigins.stream().map(String::trim).filter(origin -> !origin.isBlank()).toList();
+        allowedOrigins.stream()
+            .filter(origin -> origin != null)
+            .map(String::trim)
+            .map(origin -> origin.replaceAll("/+$", ""))
+            .filter(origin -> !origin.isBlank())
+            .toList();
 
     if (allowedOrigins.isEmpty()) {
       throw new IllegalArgumentException("app.cors.allowed-origins must not be empty");

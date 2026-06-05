@@ -25,6 +25,16 @@ get_env_value() {
 
       if (env_key == key) {
         sub(/^[^=]*=/, "", line)
+        gsub(/^[[:space:]]+|[[:space:]]+$/, "", line)
+
+        if (
+          (line ~ /^".*"$/) ||
+          (line ~ /^'\''.*'\''$/)
+        ) {
+          line = substr(line, 2, length(line) - 2)
+          gsub(/^[[:space:]]+|[[:space:]]+$/, "", line)
+        }
+
         print line
         found = 1
         exit
