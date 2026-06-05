@@ -21,7 +21,7 @@ public record S3Properties(
   }
 
   public String resolveKey(String key) {
-    String normalizedKey = normalizeKey(key);
+    String normalizedKey = normalizeKey(key, "key");
     if (basePrefix == null || basePrefix.isBlank()) {
       return normalizedKey;
     }
