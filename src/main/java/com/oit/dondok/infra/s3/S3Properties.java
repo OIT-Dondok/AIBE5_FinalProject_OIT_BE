@@ -39,18 +39,30 @@ public record S3Properties(
     return trimSlashes(value.trim());
   }
 
-  private static String normalizeKey(String value) {
-    if (value == null || value.isBlank()) {
-      throw new IllegalArgumentException("S3 key must not be blank");
+  private static String normalizeKey(String value, String propertyName) {
+    if (value == null) {
+      throw new IllegalArgumentException(propertyName + " must not be blank");
     }
-    return trimSlashes(value.trim());
+
+    String key = trimSlashes(value.trim());
+    if (key.isEmpty()) {
+      throw new IllegalArgumentException(propertyName + " must not be blank");
+    }
+
+    return key;
   }
 
   private static String normalizeHealthcheckKey(String value) {
-    if (value == null || value.isBlank()) {
+    if (value == null) {
       return DEFAULT_HEALTHCHECK_KEY;
     }
-    return normalizeKey(value);
+
+    String key = trimSlashes(value.trim());
+    if (key.isEmpty()) {
+      return DEFAULT_HEALTHCHECK_KEY;
+    }
+
+    return normalizeKey(key, "healthcheck-key");
   }
 
   private static Duration normalizeHealthcheckTimeout(Duration value) {

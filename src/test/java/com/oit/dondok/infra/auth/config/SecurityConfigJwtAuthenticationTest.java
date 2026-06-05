@@ -1,4 +1,4 @@
-package com.oit.dondok.infrastructure.auth.config;
+package com.oit.dondok.infra.auth.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
@@ -14,7 +14,7 @@ import com.oit.dondok.domain.auth.service.TokenPayload;
 import com.oit.dondok.domain.auth.service.TokenProvider;
 import com.oit.dondok.global.exception.CustomException;
 import com.oit.dondok.global.exception.GlobalExceptionHandler;
-import com.oit.dondok.infrastructure.auth.handler.SecurityErrorHandler;
+import com.oit.dondok.infra.auth.handler.SecurityErrorHandler;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.UUID;
