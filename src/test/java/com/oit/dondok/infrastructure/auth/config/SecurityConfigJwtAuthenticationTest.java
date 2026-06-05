@@ -31,12 +31,15 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @ActiveProfiles("prod")
+@TestPropertySource(
+    properties = "CORS_ALLOWED_ORIGINS=http://localhost:3000,https://dondok-fe.vercel.app")
 @WebMvcTest(SecurityConfigJwtAuthenticationTest.TestController.class)
 @AutoConfigureMockMvc
 @Import({
