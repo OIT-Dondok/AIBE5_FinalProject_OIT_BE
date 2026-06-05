@@ -1,10 +1,10 @@
-package com.oit.dondok.infrastructure.auth.config;
+package com.oit.dondok.infra.auth.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.oit.dondok.domain.auth.service.TokenProvider;
-import com.oit.dondok.infrastructure.auth.filter.CookieCsrfGuardFilter;
-import com.oit.dondok.infrastructure.auth.filter.JwtAuthenticationFilter;
-import com.oit.dondok.infrastructure.auth.handler.SecurityErrorHandler;
+import com.oit.dondok.infra.auth.filter.CookieCsrfGuardFilter;
+import com.oit.dondok.infra.auth.filter.JwtAuthenticationFilter;
+import com.oit.dondok.infra.auth.handler.SecurityErrorHandler;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
