@@ -107,7 +107,7 @@ class MissionModerationServiceTest {
 
     MissionModerationResponse response =
         missionModerationService.reject(
-            HOST_UUID, MISSION_LOG_ID, "MISSION_MISMATCH", "사진이 미션과 다릅니다");
+            HOST_UUID, MISSION_LOG_ID, RejectReasonCode.MISSION_MISMATCH, "사진이 미션과 다릅니다");
 
     assertThat(missionLog.getCertificationStatus()).isEqualTo(CertificationStatus.FAILED);
     assertThat(missionLog.getFailureReason()).isNull();
@@ -134,7 +134,9 @@ class MissionModerationServiceTest {
     givenNoSettlementStarted();
 
     assertThatThrownBy(
-            () -> missionModerationService.reject(HOST_UUID, MISSION_LOG_ID, "OTHER", ""))
+            () ->
+                missionModerationService.reject(
+                    HOST_UUID, MISSION_LOG_ID, RejectReasonCode.OTHER, ""))
         .isInstanceOf(CustomException.class)
         .extracting("errorCode")
         .isEqualTo(MissionErrorCode.REJECT_MEMO_REQUIRED);
@@ -153,40 +155,11 @@ class MissionModerationServiceTest {
     assertThatThrownBy(
             () ->
                 missionModerationService.reject(
-                    HOST_UUID, MISSION_LOG_ID, "MISSION_MISMATCH", longMemo))
+                    HOST_UUID, MISSION_LOG_ID, RejectReasonCode.MISSION_MISMATCH, longMemo))
         .isInstanceOf(CustomException.class)
         .extracting("errorCode")
         .isEqualTo(MissionErrorCode.REJECT_MEMO_TOO_LONG);
 
-    verify(moderationHistoryRepository, never()).save(any());
-  }
-
-  // 로그가 없으면 요청 body 검증보다 MISSION_LOG_NOT_FOUND를 먼저 반환한다.
-  @Test
-  void rejectWhenMissionLogNotFoundBeforeRequestBodyValidation() {
-    given(missionLogQueryRepository.findByIdWithCrewForModeration(MISSION_LOG_ID))
-        .willReturn(Optional.empty());
-
-    assertThatThrownBy(() -> missionModerationService.reject(HOST_UUID, MISSION_LOG_ID, "", ""))
-        .isInstanceOf(CustomException.class)
-        .extracting("errorCode")
-        .isEqualTo(MissionErrorCode.MISSION_LOG_NOT_FOUND);
-
-    verify(moderationHistoryRepository, never()).save(any());
-  }
-
-  // 방장이 아니면 요청 body 검증보다 권한 오류를 먼저 반환한다.
-  @Test
-  void rejectWhenRequesterIsNotHostBeforeRequestBodyValidation() {
-    MissionLog missionLog = pendingReviewLog();
-    givenMissionLogFound(missionLog);
-
-    assertThatThrownBy(() -> missionModerationService.reject(OTHER_UUID, MISSION_LOG_ID, "", ""))
-        .isInstanceOf(CustomException.class)
-        .extracting("errorCode")
-        .isEqualTo(MissionErrorCode.FORBIDDEN_NOT_HOST);
-
-    verify(settlementRepository, never()).findByCrewId(any());
     verify(moderationHistoryRepository, never()).save(any());
   }
 
@@ -199,7 +172,8 @@ class MissionModerationServiceTest {
     givenHistorySaveReturnsWithId();
     ArgumentCaptor<ModerationHistory> captor = ArgumentCaptor.forClass(ModerationHistory.class);
 
-    missionModerationService.reject(HOST_UUID, MISSION_LOG_ID, "MISSION_MISMATCH", "사진이 미션과 다릅니다");
+    missionModerationService.reject(
+        HOST_UUID, MISSION_LOG_ID, RejectReasonCode.MISSION_MISMATCH, "사진이 미션과 다릅니다");
 
     verify(moderationHistoryRepository).save(captor.capture());
     ModerationHistory history = captor.getValue();
@@ -233,6 +207,25 @@ class MissionModerationServiceTest {
     verify(settlementRepository, never()).findByCrewId(any());
   }
 
+  // 방장이 아닌 사용자는 인증을 거절할 수 없고 이력도 저장되지 않는다.
+  @Test
+  void rejectWhenRequesterIsNotHost() {
+    MissionLog missionLog = pendingReviewLog();
+    givenMissionLogFound(missionLog);
+
+    assertThatThrownBy(
+            () ->
+                missionModerationService.reject(
+                    OTHER_UUID, MISSION_LOG_ID, RejectReasonCode.MISSION_MISMATCH, null))
+        .isInstanceOf(CustomException.class)
+        .extracting("errorCode")
+        .isEqualTo(MissionErrorCode.FORBIDDEN_NOT_HOST);
+
+    assertThat(missionLog.getCertificationStatus()).isEqualTo(CertificationStatus.PENDING_REVIEW);
+    verify(moderationHistoryRepository, never()).save(any());
+    verify(settlementRepository, never()).findByCrewId(any());
+  }
+
   // 이미 승인된 인증 로그는 중복 승인할 수 없고 이력을 추가하지 않는다.
   @Test
   void rejectWhenMissionLogAlreadyApproved() {
@@ -240,7 +233,10 @@ class MissionModerationServiceTest {
     missionLog.approveManually(host(missionLog), NOW);
     givenMissionLogFound(missionLog);
 
-    assertThatThrownBy(() -> missionModerationService.approve(HOST_UUID, MISSION_LOG_ID))
+    assertThatThrownBy(
+            () ->
+                missionModerationService.reject(
+                    HOST_UUID, MISSION_LOG_ID, RejectReasonCode.MISSION_MISMATCH, null))
         .isInstanceOf(CustomException.class)
         .extracting("errorCode")
         .isEqualTo(MissionErrorCode.MISSION_LOG_NOT_REVIEWABLE);
@@ -256,7 +252,10 @@ class MissionModerationServiceTest {
     givenMissionLogFound(missionLog);
     given(settlementRepository.findByCrewId(CREW_ID)).willReturn(Optional.of(mockSettlement()));
 
-    assertThatThrownBy(() -> missionModerationService.approve(HOST_UUID, MISSION_LOG_ID))
+    assertThatThrownBy(
+            () ->
+                missionModerationService.reject(
+                    HOST_UUID, MISSION_LOG_ID, RejectReasonCode.MISSION_MISMATCH, null))
         .isInstanceOf(CustomException.class)
         .extracting("errorCode")
         .isEqualTo(MissionErrorCode.SETTLEMENT_INPUT_FROZEN);
@@ -298,7 +297,10 @@ class MissionModerationServiceTest {
     given(missionLogQueryRepository.findByIdWithCrewForModeration(MISSION_LOG_ID))
         .willReturn(Optional.empty());
 
-    assertThatThrownBy(() -> missionModerationService.approve(HOST_UUID, MISSION_LOG_ID))
+    assertThatThrownBy(
+            () ->
+                missionModerationService.reject(
+                    HOST_UUID, MISSION_LOG_ID, RejectReasonCode.MISSION_MISMATCH, null))
         .isInstanceOf(CustomException.class)
         .extracting("errorCode")
         .isEqualTo(MissionErrorCode.MISSION_LOG_NOT_FOUND);

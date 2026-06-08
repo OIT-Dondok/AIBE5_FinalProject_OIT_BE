@@ -24,10 +24,10 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.Check;
 
 @Getter
+@Check(constraints = "char_length(caption) between 5 and 100")
 @Check(
     constraints =
-        "char_length(caption) between 5 and 100"
-            + " and ("
+        "("
             + "   (certification_status = 'FAILED'"
             + "     and ("
             + "       (decision_type = 'MANUAL_REJECT'"

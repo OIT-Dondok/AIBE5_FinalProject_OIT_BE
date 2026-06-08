@@ -5,6 +5,7 @@ import com.oit.dondok.domain.mission.dto.response.MissionModerationResponse;
 import com.oit.dondok.domain.mission.service.MissionModerationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -42,7 +43,7 @@ public class MissionModerationController {
   public ResponseEntity<MissionModerationResponse> reject(
       @AuthenticationPrincipal UUID memberUuid,
       @PathVariable Long missionLogId,
-      @RequestBody MissionModerationRejectRequest request) {
+      @Valid @RequestBody MissionModerationRejectRequest request) {
     return ResponseEntity.ok(
         missionModerationService.reject(
             memberUuid, missionLogId, request.rejectReasonCode(), request.rejectMemo()));

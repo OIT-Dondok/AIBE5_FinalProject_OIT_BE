@@ -70,7 +70,7 @@ public class MissionModerationService {
   // 방장이 검수 대기 중인 인증을 수동 거절한다.
   @Transactional
   public MissionModerationResponse reject(
-      UUID memberUuid, Long missionLogId, String rejectReasonCodeValue, String rejectMemo) {
+      UUID memberUuid, Long missionLogId, RejectReasonCode rejectReasonCode, String rejectMemo) {
     MissionLog missionLog =
         missionLogQueryRepository
             .findByIdWithCrewForModeration(missionLogId)
@@ -83,7 +83,6 @@ public class MissionModerationService {
     validateReviewable(missionLog);
     validateSettlementNotStarted(crewId);
 
-    RejectReasonCode rejectReasonCode = parseRejectReasonCode(rejectReasonCodeValue);
     validateRejectMemo(rejectReasonCode, rejectMemo);
 
     LocalDateTime decidedAt = LocalDateTime.now(SEOUL);
@@ -106,19 +105,6 @@ public class MissionModerationService {
 
     return MissionModerationResponse.from(
         missionLog, history, decidedAt.atZone(SEOUL).toOffsetDateTime());
-  }
-
-  // 문자열 사유 코드를 enum으로 변환해 잘못된 값을 도메인 에러로 처리한다.
-  private RejectReasonCode parseRejectReasonCode(String rejectReasonCodeValue) {
-    if (rejectReasonCodeValue == null || rejectReasonCodeValue.isBlank()) {
-      throw new CustomException(MissionErrorCode.INVALID_REJECT_REASON_CODE);
-    }
-
-    try {
-      return RejectReasonCode.valueOf(rejectReasonCodeValue.trim());
-    } catch (IllegalArgumentException exception) {
-      throw new CustomException(MissionErrorCode.INVALID_REJECT_REASON_CODE);
-    }
   }
 
   // OTHER는 메모가 필수이며, 모든 거절 메모는 50자 이하로 제한한다.
