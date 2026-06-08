@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.oit.dondok.domain.mission.dto.response.MissionModerationResponse;
 import com.oit.dondok.domain.mission.entity.CertificationStatus;
 import com.oit.dondok.domain.mission.entity.ModerationDecisionType;
+import com.oit.dondok.domain.mission.entity.RejectReasonCode;
 import com.oit.dondok.domain.mission.exception.MissionErrorCode;
 import com.oit.dondok.domain.mission.service.MissionModerationService;
 import com.oit.dondok.global.exception.CustomException;
@@ -76,6 +77,49 @@ class MissionModerationControllerTest {
         .andExpect(jsonPath("$.moderation_history_id").value(9001));
 
     then(missionModerationService).should().approve(eq(MEMBER_UUID), eq(MISSION_LOG_ID));
+  }
+
+  // 거절 API는 요청 body의 사유 코드와 메모를 서비스에 전달한다.
+  @Test
+  void rejectSuccess() throws Exception {
+    MissionModerationResponse response =
+        new MissionModerationResponse(
+            MISSION_LOG_ID,
+            42L,
+            101L,
+            CertificationStatus.FAILED,
+            ModerationDecisionType.MANUAL_REJECT,
+            RejectReasonCode.MISSION_MISMATCH,
+            OffsetDateTime.parse("2026-06-08T11:00:00+09:00"),
+            9001L);
+    given(
+            missionModerationService.reject(
+                MEMBER_UUID, MISSION_LOG_ID, "MISSION_MISMATCH", "사진이 미션과 다릅니다"))
+        .willReturn(response);
+
+    authenticate(MEMBER_UUID);
+
+    mockMvc
+        .perform(
+            post("/api/mission-logs/{missionLogId}/moderation/reject", MISSION_LOG_ID)
+                .contentType("application/json")
+                .content(
+                    """
+                    {
+                      "reject_reason_code": "MISSION_MISMATCH",
+                      "reject_memo": "사진이 미션과 다릅니다"
+                    }
+                    """))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.mission_log_id").value(MISSION_LOG_ID))
+        .andExpect(jsonPath("$.certification_status").value("FAILED"))
+        .andExpect(jsonPath("$.decision_type").value("MANUAL_REJECT"))
+        .andExpect(jsonPath("$.reject_reason_code").value("MISSION_MISMATCH"))
+        .andExpect(jsonPath("$.moderation_history_id").value(9001));
+
+    then(missionModerationService)
+        .should()
+        .reject(eq(MEMBER_UUID), eq(MISSION_LOG_ID), eq("MISSION_MISMATCH"), eq("사진이 미션과 다릅니다"));
   }
 
   // 서비스에서 발생한 도메인 예외는 공통 에러 응답으로 변환된다.
