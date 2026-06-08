@@ -10,6 +10,13 @@ ALTER TABLE mission_log
                             decision_type = 'MANUAL_REJECT'
                             AND failure_reason IS NULL
                             AND reject_reason_code IS NOT NULL
+                            AND (
+                                reject_reason_code <> 'OTHER'
+                                OR (
+                                    reject_memo IS NOT NULL
+                                    AND TRIM(reject_memo) <> ''
+                                )
+                            )
                         )
                         OR
                         (
@@ -24,6 +31,8 @@ ALTER TABLE mission_log
                 (
                     certification_status <> 'FAILED'
                     AND failure_reason IS NULL
+                    AND reject_reason_code IS NULL
+                    AND reject_memo IS NULL
                 )
             )
         );

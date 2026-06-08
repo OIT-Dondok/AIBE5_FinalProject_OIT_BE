@@ -32,7 +32,9 @@ import org.hibernate.annotations.Check;
             + "     and ("
             + "       (decision_type = 'MANUAL_REJECT'"
             + "         and failure_reason is null"
-            + "         and reject_reason_code is not null)"
+            + "         and reject_reason_code is not null"
+            + "         and (reject_reason_code <> 'OTHER'"
+            + "           or (reject_memo is not null and trim(reject_memo) <> '')))"
             + "       or"
             + "       (decision_type = 'AUTO_REJECT'"
             + "         and failure_reason is not null"
@@ -42,7 +44,9 @@ import org.hibernate.annotations.Check;
             + "   )"
             + "   or"
             + "   (certification_status <> 'FAILED'"
-            + "     and failure_reason is null)"
+            + "     and failure_reason is null"
+            + "     and reject_reason_code is null"
+            + "     and reject_memo is null)"
             + " )")
 @Entity
 @Table(
