@@ -12,6 +12,8 @@ import com.oit.dondok.domain.crew.entity.CrewStatus;
 import com.oit.dondok.domain.mission.entity.CertificationStatus;
 import com.oit.dondok.domain.mission.entity.DailySettlementType;
 import com.oit.dondok.domain.mission.entity.MissionLog;
+import com.oit.dondok.domain.mission.entity.ModerationDecisionType;
+import com.querydsl.core.Tuple;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
@@ -21,6 +23,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
@@ -29,6 +32,13 @@ import org.springframework.stereotype.Repository;
 public class MissionLogQueryRepository {
 
   private final JPAQueryFactory queryFactory;
+
+  public record MissionReviewCandidateRow(
+      MissionLog missionLog,
+      Long crewId,
+      Long crewParticipantId,
+      UUID submitterMemberUuid,
+      String submitterNickname) {}
 
   public Optional<MissionLog> findByIdWithCrewForModeration(Long missionLogId) {
     return Optional.ofNullable(
@@ -43,6 +53,36 @@ public class MissionLogQueryRepository {
             .where(missionLog.id.eq(missionLogId))
             .setLockMode(LockModeType.PESSIMISTIC_WRITE)
             .fetchOne());
+  }
+
+  // 방장 검토 목록에서 분류할 인증 후보를 조회한다.
+  public List<MissionReviewCandidateRow> findReviewCandidatesByCrewId(
+      Long crewId, LocalDateTime reviewWindowStart) {
+    List<Tuple> rows =
+        queryFactory
+            .select(missionLog, crew.id, crewParticipant.id, member.uuid, member.nickname)
+            .from(missionLog)
+            .join(missionLog.crewParticipant, crewParticipant)
+            .join(crewParticipant.crew, crew)
+            .join(crewParticipant.member, member)
+            .where(
+                crew.id.eq(crewId),
+                crew.status.eq(CrewStatus.ACTIVE),
+                crewParticipant.status.eq(CrewParticipantStatus.LOCKED),
+                missionLog.serverTime.goe(reviewWindowStart),
+                reviewCandidate())
+            .fetch();
+
+    return rows.stream()
+        .map(
+            row ->
+                new MissionReviewCandidateRow(
+                    row.get(missionLog),
+                    row.get(crew.id),
+                    row.get(crewParticipant.id),
+                    row.get(member.uuid),
+                    row.get(member.nickname)))
+        .toList();
   }
 
   public List<Long> findAutoCertificationCandidateIds(LocalDateTime now, int limit) {
@@ -79,6 +119,16 @@ public class MissionLogQueryRepository {
             .where(missionLog.id.eq(missionLogId))
             .setLockMode(LockModeType.PESSIMISTIC_WRITE)
             .fetchOne());
+  }
+
+  // 수동 처리 전이거나 자동 처리된 인증만 방장 검토 목록 후보로 남긴다.
+  private BooleanExpression reviewCandidate() {
+    return missionLog
+        .certificationStatus
+        .eq(CertificationStatus.PENDING_REVIEW)
+        .or(
+            missionLog.decisionType.in(
+                ModerationDecisionType.AUTO_APPROVE, ModerationDecisionType.AUTO_REJECT));
   }
 
   // 타입별 자동 인증 시각이 지난 로그만 후보로 남기기 위한 DB 필터다.
