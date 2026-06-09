@@ -3,6 +3,7 @@ package com.oit.dondok.domain.crew.repository;
 import com.oit.dondok.domain.crew.entity.Crew;
 import jakarta.persistence.LockModeType;
 import java.util.Optional;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -14,6 +15,6 @@ public interface CrewRepository extends JpaRepository<Crew, Long> {
   @Query("SELECT c FROM Crew c WHERE c.id = :id")
   Optional<Crew> findByIdWithOptimisticLock(@Param("id") Long id);
 
-  @Query("SELECT c FROM Crew c JOIN FETCH c.hostMember WHERE c.id = :crewId")
-  Optional<Crew> findByIdWithHostMember(@Param("crewId") Long crewId);
+  @EntityGraph(attributePaths = {"hostMember"})
+  Optional<Crew> findWithHostMemberById(Long id);
 }

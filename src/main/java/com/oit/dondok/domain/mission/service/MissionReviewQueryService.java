@@ -53,7 +53,7 @@ public class MissionReviewQueryService {
       UUID memberUuid, Long crewId, String reviewCategory, String cursor, int limit) {
     Crew crew =
         crewRepository
-            .findByIdWithHostMember(crewId)
+            .findWithHostMemberById(crewId)
             .orElseThrow(() -> new CustomException(CrewErrorCode.CREW_NOT_FOUND));
     validateHost(memberUuid, crew);
 
