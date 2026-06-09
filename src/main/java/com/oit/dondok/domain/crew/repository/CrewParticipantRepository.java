@@ -11,5 +11,7 @@ public interface CrewParticipantRepository extends JpaRepository<CrewParticipant
 
   Optional<CrewParticipant> findByCrewIdAndMemberUuid(Long crewId, UUID memberUuid);
 
+  boolean existsByCrewIdAndMemberUuid(Long crewId, UUID memberUuid);
+
   long countByCrewIdAndStatusIn(Long crewId, List<CrewParticipantStatus> statuses);
 }
