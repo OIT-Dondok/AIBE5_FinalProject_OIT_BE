@@ -7,6 +7,7 @@ import com.oit.dondok.global.exception.CustomException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 @Component
 @RequiredArgsConstructor
@@ -18,6 +19,7 @@ public class SystemMemberProvider {
 
   // 자동 처리 이력의 actor로 사용할 내부 시스템 계정 ID를 캐싱한다.
   @Cacheable("systemMemberId")
+  @Transactional(readOnly = true)
   public Long getSystemMemberId() {
     return memberRepository
         .findByEmail(SYSTEM_MEMBER_EMAIL)
