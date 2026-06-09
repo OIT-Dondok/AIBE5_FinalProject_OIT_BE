@@ -26,4 +26,11 @@ public record MissionReviewSummaryItemResponse(
     ModerationDecisionType decisionType,
     RejectReasonCode rejectReasonCode,
     MissionReviewCategory reviewCategory,
-    OffsetDateTime reviewDeadlineAt) {}
+    OffsetDateTime reviewDeadlineAt) {
+
+  public enum MissionReviewCategory {
+    URGENT_REVIEW,
+    CAUTION_REVIEW,
+    NORMAL_REVIEW
+  }
+}
