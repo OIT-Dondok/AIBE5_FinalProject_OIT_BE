@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.oit.dondok.domain.mission.entity.CertificationStatus;
 import com.oit.dondok.domain.mission.entity.ExifRisk;
-import com.oit.dondok.domain.mission.entity.MissionReviewCategory;
 import com.oit.dondok.domain.mission.entity.ModerationDecisionType;
 import com.oit.dondok.domain.mission.entity.RejectReasonCode;
 import java.time.OffsetDateTime;

@@ -1,4 +1,4 @@
-package com.oit.dondok.domain.mission.entity;
+package com.oit.dondok.domain.mission.dto.response;
 
 public enum MissionReviewCategory {
   URGENT_REVIEW,

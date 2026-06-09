@@ -5,6 +5,7 @@ import com.oit.dondok.domain.crew.exception.CrewErrorCode;
 import com.oit.dondok.domain.crew.repository.CrewRepository;
 import com.oit.dondok.domain.image.port.ImageDeliveryPort;
 import com.oit.dondok.domain.image.port.ImageObjectKey;
+import com.oit.dondok.domain.mission.dto.response.MissionReviewCategory;
 import com.oit.dondok.domain.mission.dto.response.MissionReviewListResponse;
 import com.oit.dondok.domain.mission.dto.response.MissionReviewSummaryItemResponse;
 import com.oit.dondok.domain.mission.dto.response.MissionReviewSummaryResponse;
@@ -12,7 +13,6 @@ import com.oit.dondok.domain.mission.entity.CertificationStatus;
 import com.oit.dondok.domain.mission.entity.DailySettlementType;
 import com.oit.dondok.domain.mission.entity.ExifRisk;
 import com.oit.dondok.domain.mission.entity.MissionLog;
-import com.oit.dondok.domain.mission.entity.MissionReviewCategory;
 import com.oit.dondok.domain.mission.entity.MissionRule;
 import com.oit.dondok.domain.mission.entity.ModerationDecisionType;
 import com.oit.dondok.domain.mission.exception.MissionErrorCode;
@@ -282,7 +282,7 @@ public class MissionReviewQueryService {
               Base64.getUrlDecoder().decode(restoreBase64Padding(cursor)), StandardCharsets.UTF_8);
       return Long.parseLong(decoded);
     } catch (IllegalArgumentException exception) {
-      throw new CustomException(CrewErrorCode.INVALID_CURSOR);
+      throw new CustomException(MissionErrorCode.INVALID_CURSOR);
     }
   }
 
