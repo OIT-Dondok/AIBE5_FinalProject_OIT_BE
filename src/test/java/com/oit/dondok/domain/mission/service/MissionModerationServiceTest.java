@@ -207,6 +207,52 @@ class MissionModerationServiceTest {
     verify(settlementRepository, never()).findByCrewId(any());
   }
 
+  // 존재하지 않는 인증 로그는 승인할 수 없다.
+  @Test
+  void approveWhenMissionLogNotFound() {
+    given(missionLogQueryRepository.findByIdWithCrewForModeration(MISSION_LOG_ID))
+        .willReturn(Optional.empty());
+
+    assertThatThrownBy(() -> missionModerationService.approve(HOST_UUID, MISSION_LOG_ID))
+        .isInstanceOf(CustomException.class)
+        .extracting("errorCode")
+        .isEqualTo(MissionErrorCode.MISSION_LOG_NOT_FOUND);
+
+    verify(moderationHistoryRepository, never()).save(any());
+  }
+
+  // 이미 결정된 인증 로그는 다시 승인할 수 없다.
+  @Test
+  void approveWhenMissionLogAlreadyDecided() {
+    MissionLog missionLog = pendingReviewLog();
+    missionLog.approveManually(host(missionLog), NOW);
+    givenMissionLogFound(missionLog);
+
+    assertThatThrownBy(() -> missionModerationService.approve(HOST_UUID, MISSION_LOG_ID))
+        .isInstanceOf(CustomException.class)
+        .extracting("errorCode")
+        .isEqualTo(MissionErrorCode.MISSION_LOG_NOT_REVIEWABLE);
+
+    verify(settlementRepository, never()).findByCrewId(any());
+    verify(moderationHistoryRepository, never()).save(any());
+  }
+
+  // 정산이 시작된 크루의 인증은 승인할 수 없다.
+  @Test
+  void approveWhenSettlementAlreadyStarted() {
+    MissionLog missionLog = pendingReviewLog();
+    givenMissionLogFound(missionLog);
+    given(settlementRepository.findByCrewId(CREW_ID)).willReturn(Optional.of(mockSettlement()));
+
+    assertThatThrownBy(() -> missionModerationService.approve(HOST_UUID, MISSION_LOG_ID))
+        .isInstanceOf(CustomException.class)
+        .extracting("errorCode")
+        .isEqualTo(MissionErrorCode.SETTLEMENT_INPUT_FROZEN);
+
+    assertThat(missionLog.getCertificationStatus()).isEqualTo(CertificationStatus.PENDING_REVIEW);
+    verify(moderationHistoryRepository, never()).save(any());
+  }
+
   // 방장이 아닌 사용자는 인증을 거절할 수 없고 이력도 저장되지 않는다.
   @Test
   void rejectWhenRequesterIsNotHost() {
