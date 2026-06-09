@@ -1,5 +1,6 @@
 package com.oit.dondok.domain.mission.controller;
 
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
@@ -44,6 +45,38 @@ class MissionModerationControllerTest {
   @AfterEach
   void clearSecurityContext() {
     SecurityContextHolder.clearContext();
+  }
+
+  // 승인 API는 인증 principal과 path variable을 서비스에 전달하고 명세의 응답 body를 반환한다.
+  @Test
+  void approveSuccess() throws Exception {
+    MissionModerationResponse response =
+        new MissionModerationResponse(
+            MISSION_LOG_ID,
+            42L,
+            101L,
+            CertificationStatus.SUCCESS,
+            ModerationDecisionType.MANUAL_APPROVE,
+            null,
+            OffsetDateTime.parse("2026-06-08T11:00:00+09:00"),
+            9001L);
+    given(missionModerationService.approve(MEMBER_UUID, MISSION_LOG_ID)).willReturn(response);
+
+    authenticate(MEMBER_UUID);
+
+    mockMvc
+        .perform(post("/api/mission-logs/{missionLogId}/moderation/approve", MISSION_LOG_ID))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.mission_log_id").value(MISSION_LOG_ID))
+        .andExpect(jsonPath("$.crew_id").value(42))
+        .andExpect(jsonPath("$.crew_participant_id").value(101))
+        .andExpect(jsonPath("$.certification_status").value("SUCCESS"))
+        .andExpect(jsonPath("$.decision_type").value("MANUAL_APPROVE"))
+        .andExpect(jsonPath("$.reject_reason_code").value(nullValue()))
+        .andExpect(jsonPath("$.decided_at").value("2026-06-08T11:00:00+09:00"))
+        .andExpect(jsonPath("$.moderation_history_id").value(9001));
+
+    then(missionModerationService).should().approve(eq(MEMBER_UUID), eq(MISSION_LOG_ID));
   }
 
   // 거절 API는 인증 principal, path variable, 요청 body를 서비스에 전달한다.
