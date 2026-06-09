@@ -272,7 +272,7 @@ class MissionModerationServiceTest {
     verify(settlementRepository, never()).findByCrewId(any());
   }
 
-  // 이미 승인된 인증 로그는 중복 승인할 수 없고 이력을 추가하지 않는다.
+  // 이미 승인된 인증 로그는 거절할 수 없고 이력을 추가하지 않는다.
   @Test
   void rejectWhenMissionLogAlreadyApproved() {
     MissionLog missionLog = pendingReviewLog();
@@ -291,7 +291,7 @@ class MissionModerationServiceTest {
     verify(moderationHistoryRepository, never()).save(any());
   }
 
-  // 정산이 시작된 크루의 인증은 정산 결과와의 불일치를 막기 위해 승인하지 않는다.
+  // 정산이 시작된 크루의 인증은 정산 결과와의 불일치를 막기 위해 거절하지 않는다.
   @Test
   void rejectWhenSettlementAlreadyStarted() {
     MissionLog missionLog = pendingReviewLog();
