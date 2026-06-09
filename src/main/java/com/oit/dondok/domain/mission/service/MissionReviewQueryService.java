@@ -9,6 +9,7 @@ import com.oit.dondok.domain.mission.dto.response.MissionReviewListResponse;
 import com.oit.dondok.domain.mission.dto.response.MissionReviewSummaryItemResponse;
 import com.oit.dondok.domain.mission.dto.response.MissionReviewSummaryResponse;
 import com.oit.dondok.domain.mission.entity.CertificationStatus;
+import com.oit.dondok.domain.mission.entity.DailySettlementType;
 import com.oit.dondok.domain.mission.entity.ExifRisk;
 import com.oit.dondok.domain.mission.entity.MissionLog;
 import com.oit.dondok.domain.mission.entity.MissionReviewCategory;
@@ -20,6 +21,7 @@ import com.oit.dondok.domain.mission.repository.MissionRuleRepository;
 import com.oit.dondok.global.exception.CustomException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -38,6 +40,7 @@ public class MissionReviewQueryService {
 
   private static final int MAX_LIMIT = 100;
   private static final Duration IMAGE_URL_TTL = Duration.ofMinutes(10);
+  private static final Duration HOST_REVIEW_GRACE_PERIOD = Duration.ofHours(72);
   private static final ZoneId SEOUL_ZONE = ZoneId.of("Asia/Seoul");
 
   private final CrewRepository crewRepository;
@@ -63,7 +66,8 @@ public class MissionReviewQueryService {
     int effectiveLimit = Math.min(Math.max(limit, 1), MAX_LIMIT);
     Long cursorId = decodeCursor(cursor);
     LocalDateTime now = LocalDateTime.now(SEOUL_ZONE);
-    LocalDateTime reviewWindowStart = crew.getStartAt();
+    LocalDateTime reviewWindowStart =
+        resolveReviewWindowStart(missionRule.getDailySettlementType(), now);
 
     List<ClassifiedItem> allClassified =
         missionLogQueryRepository.findReviewCandidatesByCrewId(crewId, reviewWindowStart).stream()
@@ -74,9 +78,7 @@ public class MissionReviewQueryService {
 
     MissionReviewSummaryResponse summary = createSummary(allClassified);
     List<ClassifiedItem> filteredItems =
-        allClassified.stream()
-            .filter(item -> categoryFilter == null || item.reviewCategory() == categoryFilter)
-            .toList();
+        allClassified.stream().filter(item -> item.reviewCategory() == categoryFilter).toList();
 
     int startIndex = findStartIndex(filteredItems, cursorId);
     int endExclusive = Math.min(startIndex + effectiveLimit, filteredItems.size());
@@ -100,13 +102,33 @@ public class MissionReviewQueryService {
   // 문자열 query parameter를 검토 분류 enum으로 변환한다.
   private MissionReviewCategory parseCategory(String reviewCategory) {
     if (reviewCategory == null || reviewCategory.isBlank()) {
-      return null;
+      throw new CustomException(MissionErrorCode.INVALID_REVIEW_CATEGORY);
     }
     try {
       return MissionReviewCategory.valueOf(reviewCategory);
     } catch (IllegalArgumentException exception) {
       throw new CustomException(MissionErrorCode.INVALID_REVIEW_CATEGORY);
     }
+  }
+
+  // 방장 재검토 유예기간 72시간에 걸칠 수 있는 가장 이른 제출일을 조회 하한으로 잡는다.
+  private LocalDateTime resolveReviewWindowStart(
+      DailySettlementType dailySettlementType, LocalDateTime now) {
+    LocalDate today = now.toLocalDate();
+    LocalDate earliestDate = today;
+
+    for (LocalDate missionDate = today.minusDays(5);
+        !missionDate.isAfter(today);
+        missionDate = missionDate.plusDays(1)) {
+      LocalDateTime reviewExpiresAt =
+          dailySettlementType.autoCertificationAt(missionDate).plus(HOST_REVIEW_GRACE_PERIOD);
+      if (!now.isAfter(reviewExpiresAt)) {
+        earliestDate = missionDate;
+        break;
+      }
+    }
+
+    return earliestDate.atStartOfDay();
   }
 
   // DB에 저장하지 않는 review category를 조회 시점 정책으로 계산한다.
@@ -152,7 +174,9 @@ public class MissionReviewQueryService {
   // 긴급 검토가 EXIF 기반 분류보다 우선한다.
   private MissionReviewCategory classify(
       MissionLog missionLog, LocalDateTime reviewDeadlineAt, LocalDateTime now) {
-    if (!now.isBefore(reviewDeadlineAt) && isNotManuallyReviewed(missionLog)) {
+    if (!now.isBefore(reviewDeadlineAt)
+        && isWithinHostReviewGracePeriod(reviewDeadlineAt, now)
+        && isNotManuallyReviewed(missionLog)) {
       return MissionReviewCategory.URGENT_REVIEW;
     }
 
@@ -166,6 +190,11 @@ public class MissionReviewQueryService {
     }
 
     return MissionReviewCategory.NORMAL_REVIEW;
+  }
+
+  // 검토 기한이 지난 뒤에도 72시간 동안만 긴급 검토에 남긴다.
+  private boolean isWithinHostReviewGracePeriod(LocalDateTime reviewDeadlineAt, LocalDateTime now) {
+    return !now.isAfter(reviewDeadlineAt.plus(HOST_REVIEW_GRACE_PERIOD));
   }
 
   // 수동 처리 전이거나 자동 처리된 인증만 검토 목록 후보로 본다.
