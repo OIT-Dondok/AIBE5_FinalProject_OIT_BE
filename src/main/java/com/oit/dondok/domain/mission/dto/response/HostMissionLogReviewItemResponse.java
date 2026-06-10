@@ -7,7 +7,7 @@ import com.oit.dondok.domain.mission.entity.CertificationStatus;
 import com.oit.dondok.domain.mission.entity.ExifRisk;
 import com.oit.dondok.domain.mission.entity.ModerationDecisionType;
 import com.oit.dondok.domain.mission.entity.RejectReasonCode;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
@@ -20,12 +20,12 @@ public record HostMissionLogReviewItemResponse(
     String profileImageUrl,
     String imageUrl,
     String caption,
-    LocalDateTime submittedAt,
-    LocalDateTime capturedAt,
+    OffsetDateTime submittedAt,
+    OffsetDateTime capturedAt,
     ExifRisk exifStatus,
     @JsonProperty("is_duplicate") boolean isDuplicate,
     String reviewBucket,
     CertificationStatus certificationStatus,
     ModerationDecisionType decisionType,
     RejectReasonCode rejectReasonCode,
-    LocalDateTime hostReviewableUntil) {}
+    OffsetDateTime hostReviewableUntil) {}

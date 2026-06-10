@@ -65,10 +65,7 @@ public class MissionLogQueryRepository {
             crew.status.eq(CrewStatus.ACTIVE),
             crewParticipant.status.eq(CrewParticipantStatus.LOCKED),
             autoCertificationDue(now),
-            JPAExpressions.selectOne()
-                .from(settlement)
-                .where(settlement.crew.id.eq(crew.id))
-                .notExists())
+            noSettlementExists())
         .orderBy(missionLog.serverTime.asc(), missionLog.id.asc())
         .limit(limit)
         .fetch();
@@ -110,8 +107,10 @@ public class MissionLogQueryRepository {
         .where(
             crew.id.eq(crewId),
             crew.status.eq(CrewStatus.ACTIVE),
+            crewParticipant.status.eq(CrewParticipantStatus.LOCKED),
             reviewableDecisionState(bucket),
             hostReviewableUntilExpression().goe(now),
+            noSettlementExists(),
             cursorCondition(sortTime, cursorSortTime, cursorMissionLogId))
         .orderBy(sortTime.asc(), missionLog.id.asc())
         .limit(limit)
@@ -132,8 +131,10 @@ public class MissionLogQueryRepository {
             .where(
                 crew.id.eq(crewId),
                 crew.status.eq(CrewStatus.ACTIVE),
+                crewParticipant.status.eq(CrewParticipantStatus.LOCKED),
                 reviewableDecisionState(bucket),
-                hostReviewableUntilExpression().goe(now))
+                hostReviewableUntilExpression().goe(now),
+                noSettlementExists())
             .fetchOne();
     return count == null ? 0L : count;
   }
@@ -167,6 +168,14 @@ public class MissionLogQueryRepository {
         .certificationStatus
         .eq(CertificationStatus.PENDING_REVIEW)
         .and(missionLog.decisionType.isNull());
+  }
+
+  // 정산이 시작된 크루는 자동 판정/방장 검토 대상에서 제외한다.
+  private BooleanExpression noSettlementExists() {
+    return JPAExpressions.selectOne()
+        .from(settlement)
+        .where(settlement.crew.id.eq(crew.id))
+        .notExists();
   }
 
   // bucket별 cursor 정렬 기준을 만든다.

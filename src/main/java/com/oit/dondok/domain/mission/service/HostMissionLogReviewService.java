@@ -20,6 +20,7 @@ import com.oit.dondok.global.exception.GlobalErrorCode;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.Base64;
 import java.util.List;
@@ -190,15 +191,19 @@ public class HostMissionLogReviewService {
         resolveImageUrl(missionLog.getCrewParticipant().getMember().getProfileImageS3Key()),
         resolveImageUrl(missionLog.getImageS3Key()),
         missionLog.getCaption(),
-        missionLog.getServerTime(),
-        missionLog.getExifTakenAt(),
+        toSeoulOffset(missionLog.getServerTime()),
+        toSeoulOffset(missionLog.getExifTakenAt()),
         missionLog.getExifRisk(),
         missionLog.isDuplicateHash(),
         candidate.bucket().value(),
         missionLog.getCertificationStatus(),
         missionLog.getDecisionType(),
         missionLog.getRejectReasonCode(),
-        candidate.hostReviewableUntil());
+        toSeoulOffset(candidate.hostReviewableUntil()));
+  }
+
+  private OffsetDateTime toSeoulOffset(LocalDateTime ldt) {
+    return ldt == null ? null : ldt.atZone(SEOUL_ZONE).toOffsetDateTime();
   }
 
   // 저장된 S3 key를 표시용 임시 URL로 변환한다.
