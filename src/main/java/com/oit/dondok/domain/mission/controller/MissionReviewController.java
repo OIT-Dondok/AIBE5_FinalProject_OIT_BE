@@ -27,7 +27,7 @@ public class MissionReviewController {
   public ResponseEntity<MissionReviewListResponse> getReviewList(
       @AuthenticationPrincipal UUID memberUuid,
       @PathVariable Long crewId,
-      @RequestParam(name = "review_category", required = false) String reviewCategory,
+      @RequestParam(name = "review_category") String reviewCategory,
       @RequestParam(required = false) String cursor,
       @RequestParam(defaultValue = "20") int limit) {
     return ResponseEntity.ok(
