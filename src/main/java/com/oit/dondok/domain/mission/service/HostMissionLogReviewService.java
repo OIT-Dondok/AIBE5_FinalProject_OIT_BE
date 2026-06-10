@@ -8,11 +8,9 @@ import com.oit.dondok.domain.image.port.ImageObjectKey;
 import com.oit.dondok.domain.mission.dto.response.HostMissionLogReviewCountsResponse;
 import com.oit.dondok.domain.mission.dto.response.HostMissionLogReviewItemResponse;
 import com.oit.dondok.domain.mission.dto.response.HostMissionLogReviewListResponse;
-import com.oit.dondok.domain.mission.entity.ExifRisk;
 import com.oit.dondok.domain.mission.entity.MissionLog;
 import com.oit.dondok.domain.mission.entity.MissionLogReviewBucket;
 import com.oit.dondok.domain.mission.entity.MissionRule;
-import com.oit.dondok.domain.mission.entity.ModerationDecisionType;
 import com.oit.dondok.domain.mission.exception.MissionErrorCode;
 import com.oit.dondok.domain.mission.repository.MissionLogQueryRepository;
 import com.oit.dondok.domain.mission.repository.MissionRuleRepository;
@@ -22,7 +20,6 @@ import com.oit.dondok.global.exception.GlobalErrorCode;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.Base64;
 import java.util.List;
@@ -80,7 +77,7 @@ public class HostMissionLogReviewService {
                 effectiveLimit + 1,
                 now)
             .stream()
-            .map(log -> toCandidate(log, missionRule))
+            .map(log -> toCandidate(log, missionRule, requestedBucket))
             .toList();
 
     boolean hasNext = pageCandidates.size() > effectiveLimit;
@@ -133,29 +130,17 @@ public class HostMissionLogReviewService {
     return Math.toIntExact(count);
   }
 
-  // MissionLog와 정산 타입을 조합해 화면에 필요한 검토 후보 정보를 계산한다.
-  private ReviewCandidate toCandidate(MissionLog missionLog, MissionRule missionRule) {
+  // DB에서 이미 선택된 bucket과 미션 규칙을 조합해 cursor와 응답에 필요한 값을 계산한다.
+  private ReviewCandidate toCandidate(
+      MissionLog missionLog, MissionRule missionRule, MissionLogReviewBucket bucket) {
     LocalDateTime hostReviewableUntil =
         missionRule
             .getDailySettlementType()
             .autoCertificationAt(missionLog.getServerTime().toLocalDate())
             .plus(HOST_REVIEW_GRACE_DURATION);
-    MissionLogReviewBucket bucket = resolveBucket(missionLog);
     LocalDateTime sortTime =
         bucket == MissionLogReviewBucket.URGENT ? hostReviewableUntil : missionLog.getServerTime();
     return new ReviewCandidate(missionLog, bucket, hostReviewableUntil, sortTime);
-  }
-
-  // 명세의 우선순위에 따라 review bucket을 계산한다.
-  private MissionLogReviewBucket resolveBucket(MissionLog missionLog) {
-    if (missionLog.getDecisionType() == ModerationDecisionType.AUTO_APPROVE
-        || missionLog.getDecisionType() == ModerationDecisionType.AUTO_REJECT) {
-      return MissionLogReviewBucket.URGENT;
-    }
-    if (missionLog.getExifRisk() != ExifRisk.NORMAL || missionLog.isDuplicateHash()) {
-      return MissionLogReviewBucket.WARNING;
-    }
-    return MissionLogReviewBucket.NORMAL;
   }
 
   // 다음 페이지 요청에 사용할 opaque cursor를 생성한다.
@@ -186,7 +171,7 @@ public class HostMissionLogReviewService {
       if (cursorBucket != requestedBucket) {
         throw new IllegalArgumentException("bucket mismatch");
       }
-      return new Cursor(cursorBucket, LocalDateTime.parse(parts[1]), Long.parseLong(parts[2]));
+      return new Cursor(LocalDateTime.parse(parts[1]), Long.parseLong(parts[2]));
     } catch (RuntimeException exception) {
       throw new CustomException(GlobalErrorCode.INVALID_INPUT);
     }
@@ -205,15 +190,15 @@ public class HostMissionLogReviewService {
         resolveImageUrl(missionLog.getCrewParticipant().getMember().getProfileImageS3Key()),
         resolveImageUrl(missionLog.getImageS3Key()),
         missionLog.getCaption(),
-        toOffsetDateTime(missionLog.getServerTime()),
-        toOffsetDateTime(missionLog.getExifTakenAt()),
+        missionLog.getServerTime(),
+        missionLog.getExifTakenAt(),
         missionLog.getExifRisk(),
         missionLog.isDuplicateHash(),
         candidate.bucket().value(),
         missionLog.getCertificationStatus(),
         missionLog.getDecisionType(),
         missionLog.getRejectReasonCode(),
-        toOffsetDateTime(candidate.hostReviewableUntil()));
+        candidate.hostReviewableUntil());
   }
 
   // 저장된 S3 key를 표시용 임시 URL로 변환한다.
@@ -222,11 +207,6 @@ public class HostMissionLogReviewService {
       return null;
     }
     return imageDeliveryPort.createDeliveryUrl(new ImageObjectKey(imageS3Key), IMAGE_URL_TTL).url();
-  }
-
-  // DB의 KST LocalDateTime 값을 OffsetDateTime 응답으로 변환한다.
-  private OffsetDateTime toOffsetDateTime(LocalDateTime dateTime) {
-    return dateTime == null ? null : dateTime.atZone(SEOUL_ZONE).toOffsetDateTime();
   }
 
   private HostMissionLogReviewListResponse emptyResponse() {
@@ -240,5 +220,5 @@ public class HostMissionLogReviewService {
       LocalDateTime hostReviewableUntil,
       LocalDateTime sortTime) {}
 
-  private record Cursor(MissionLogReviewBucket bucket, LocalDateTime sortTime, Long missionLogId) {}
+  private record Cursor(LocalDateTime sortTime, Long missionLogId) {}
 }
