@@ -142,7 +142,7 @@
 
 | 필드     | 타입      | 필수 | 설명                                                               |
 | -------- | --------- | ---- | ------------------------------------------------------------------ |
-| `bucket` | `string`  | Y    | `URGENT`, `WARNING`, `NORMAL` 중 하나 |
+| `bucket` | `string`  | Y    | `urgent`, `warning`, `normal` 중 하나. 요청값은 대소문자 구분 없이 처리한다. |
 | `cursor` | `string`  | N    | 이전 응답의 `next_cursor`로 다음 페이지를 조회한다                  |
 | `limit`  | `integer` | N    | 기본 20, 최대 50                                                    |
 
@@ -160,9 +160,9 @@
       "profile_image_url": "https://cdn.example.com/profile/101.jpg",
       "image_url": "https://cdn.example.com/mission/9001.jpg",
       "caption": "오늘 미션 완료했습니다",
-      "submitted_at": "2026-06-10T08:30:00+09:00",
+      "server_time": "2026-06-10T08:30:00+09:00",
       "captured_at": "2026-06-10T08:00:00+09:00",
-      "exif_status": "NORMAL",
+      "exif_risk": "NORMAL",
       "is_duplicate": false,
       "review_bucket": "normal",
       "certification_status": "PENDING_REVIEW",
@@ -191,22 +191,24 @@
 **정책**
 
 - 호출자가 해당 크루의 host여야 한다. host가 아니면 `FORBIDDEN_NOT_HOST`를 반환한다.
+- 구현된 조회 경로는 `/api/crews/{crewId}/host/mission-logs/reviewable`이다.
 - 크루 상태가 `ACTIVE`인 경우만 조회 대상이다.
 - 참여자 상태가 `LOCKED`인 미션 로그만 조회 대상이다.
 - 해당 크루에 `settlement` row가 있으면 검토 대상이 없으므로 빈 목록을 반환한다.
 - `host_reviewable_until`이 현재 시각보다 이전이면 조회 대상에서 제외한다.
 - 응답 timestamp는 사용자 응답 규칙에 따라 `Asia/Seoul` offset이 포함된 `OffsetDateTime` 형태로 반환한다.
-  - `submitted_at`
+  - `server_time`
   - `captured_at`
   - `host_reviewable_until`
+- `review_bucket` 응답값은 `urgent`, `warning`, `normal` 소문자로 반환한다.
 
 **Bucket 분류**
 
 | bucket    | 포함 대상                                                                 |
 | --------- | ------------------------------------------------------------------------- |
-| `normal`  | 아직 자동 판정 전인 `PENDING_REVIEW` 로그 중 `exif_status = NORMAL`이고 `is_duplicate = false`인 로그 |
-| `warning` | 아직 자동 판정 전인 `PENDING_REVIEW` 로그 중 EXIF 위험 또는 중복 이미지 신호가 있는 로그 |
-| `urgent`  | 시스템 자동 판정이 이미 내려진 로그. 즉 `SUCCESS + AUTO_APPROVE` 또는 `FAILED + AUTO_REJECT` |
+| `urgent`  | 방장 미검토로 시스템 자동 판정이 내려졌고, 자동 판정 시각 이후 72시간 검토 가능 기간 안에 있는 로그. 즉 `SUCCESS + AUTO_APPROVE` 또는 `FAILED + AUTO_REJECT` |
+| `warning` | 아직 자동 판정 전인 `PENDING_REVIEW` 로그 중 `exif_risk = TIME_INVALID`, `exif_risk = MISSING`, 또는 `is_duplicate = true`인 로그 |
+| `normal`  | 아직 자동 판정 전인 `PENDING_REVIEW` 로그 중 `exif_risk = NORMAL`이고 `is_duplicate = false`인 로그 |
 
 **상태별 표시/처리 의미**
 
