@@ -18,33 +18,25 @@ class AutoCertificationDeciderTest {
   // 중복 해시가 있으면 EXIF가 정상이더라도 자동 반려한다.
   @Test
   void rejectDuplicateHash() {
-    AutoCertificationDecision decision = decider.decide(missionLog(ExifRisk.NORMAL, true));
-
-    assertThat(decision.approved()).isFalse();
+    assertThat(decider.isApproved(missionLog(ExifRisk.NORMAL, true))).isFalse();
   }
 
   // EXIF 위험도가 NORMAL이면 자동 승인한다.
   @Test
   void approveNormalExifRisk() {
-    AutoCertificationDecision decision = decider.decide(missionLog(ExifRisk.NORMAL, false));
-
-    assertThat(decision.approved()).isTrue();
+    assertThat(decider.isApproved(missionLog(ExifRisk.NORMAL, false))).isTrue();
   }
 
   // EXIF가 없지만 이미지가 제출된 로그는 MVP 정책에 따라 자동 승인한다.
   @Test
   void approveMissingExifRisk() {
-    AutoCertificationDecision decision = decider.decide(missionLog(ExifRisk.MISSING, false));
-
-    assertThat(decision.approved()).isTrue();
+    assertThat(decider.isApproved(missionLog(ExifRisk.MISSING, false))).isTrue();
   }
 
   // EXIF 시간이 유효하지 않으면 자동 반려한다.
   @Test
   void rejectInvalidExifRisk() {
-    AutoCertificationDecision decision = decider.decide(missionLog(ExifRisk.TIME_INVALID, false));
-
-    assertThat(decision.approved()).isFalse();
+    assertThat(decider.isApproved(missionLog(ExifRisk.TIME_INVALID, false))).isFalse();
   }
 
   private MissionLog missionLog(ExifRisk exifRisk, boolean duplicateHash) {

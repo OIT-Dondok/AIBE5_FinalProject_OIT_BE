@@ -216,6 +216,7 @@ class MissionLogRepositoryTest {
     ReflectionTestUtils.setField(log, "exifRisk", ExifRisk.NORMAL);
     ReflectionTestUtils.setField(log, "certificationStatus", status);
     if (status == CertificationStatus.FAILED) {
+      ReflectionTestUtils.setField(log, "duplicateHash", true);
       ReflectionTestUtils.setField(log, "decisionType", ModerationDecisionType.AUTO_REJECT);
     }
     return entityManager.persistAndFlush(log);

@@ -36,6 +36,7 @@ import org.hibernate.annotations.Check;
             + "           or (reject_memo is not null and trim(reject_memo) <> '')))"
             + "       or"
             + "       (decision_type = 'AUTO_REJECT'"
+            + "         and (duplicate_hash = true or exif_risk not in ('NORMAL', 'MISSING'))"
             + "         and reject_reason_code is null"
             + "         and reject_memo is null)"
             + "     )"
@@ -190,6 +191,9 @@ public class MissionLog extends AuditableTimeEntity {
   public void rejectAutomatically(Member moderator, LocalDateTime decidedAt) {
     if (certificationStatus != CertificationStatus.PENDING_REVIEW) {
       throw new CustomException(MissionErrorCode.MISSION_LOG_NOT_REVIEWABLE);
+    }
+    if (!duplicateHash && exifRisk.isAutoApprovable()) {
+      throw new CustomException(MissionErrorCode.INVALID_AUTO_REJECTION_SIGNAL);
     }
 
     this.certificationStatus = CertificationStatus.FAILED;

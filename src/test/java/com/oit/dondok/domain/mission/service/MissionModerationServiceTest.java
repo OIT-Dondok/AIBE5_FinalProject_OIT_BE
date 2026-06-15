@@ -138,6 +138,7 @@ class MissionModerationServiceTest {
   @Test
   void approveAutoRejectedLogByHost() {
     MissionLog missionLog = pendingReviewLog();
+    ReflectionTestUtils.setField(missionLog, "duplicateHash", true);
     missionLog.rejectAutomatically(host(missionLog), NOW.minusMinutes(1));
     givenMissionLogFound(missionLog);
     givenNoSettlementStarted();
@@ -231,9 +232,13 @@ class MissionModerationServiceTest {
     JsonNode afterState = objectMapper.readTree(history.getAfterState());
 
     assertThat(beforeState.get("certification_status").asText()).isEqualTo("PENDING_REVIEW");
+    assertThat(beforeState.has("exif_risk")).isFalse();
+    assertThat(beforeState.has("duplicate_hash")).isFalse();
     assertThat(beforeState.get("decision_type").isNull()).isTrue();
     assertThat(afterState.get("certification_status").asText()).isEqualTo("FAILED");
     assertThat(afterState.has("failure_reason")).isFalse();
+    assertThat(afterState.has("exif_risk")).isFalse();
+    assertThat(afterState.has("duplicate_hash")).isFalse();
     assertThat(afterState.get("decision_type").asText()).isEqualTo("MANUAL_REJECT");
     assertThat(afterState.get("reject_reason_code").asText()).isEqualTo("MISSION_MISMATCH");
     assertThat(afterState.get("reject_memo").asText()).isEqualTo("사진이 미션과 다릅니다");

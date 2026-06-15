@@ -24,6 +24,10 @@ ALTER TABLE mission_log
                     OR
                     (
                         decision_type = 'AUTO_REJECT'
+                        AND (
+                            duplicate_hash = TRUE
+                            OR exif_risk NOT IN ('NORMAL', 'MISSING')
+                        )
                         AND reject_reason_code IS NULL
                         AND reject_memo IS NULL
                     )

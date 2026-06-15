@@ -147,6 +147,7 @@ class HostOperationQueryRepositoryTest {
     ReflectionTestUtils.setField(missionLog, "exifRisk", ExifRisk.NORMAL);
     ReflectionTestUtils.setField(missionLog, "certificationStatus", certificationStatus);
     if (certificationStatus == CertificationStatus.FAILED) {
+      ReflectionTestUtils.setField(missionLog, "duplicateHash", true);
       ReflectionTestUtils.setField(missionLog, "decisionType", ModerationDecisionType.AUTO_REJECT);
     }
 
