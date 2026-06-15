@@ -174,6 +174,7 @@ docker run -d \
   -e DEPLOYED_SHA="${DEPLOY_SHA}" \
   -p "127.0.0.1:${NEXT_PORT}:${CONTAINER_PORT}" \
   -v "${CONFIG_FILE}:/app/config/application-prod.yml:ro" \
+  -v "/opt/dondok/secrets/firebase-service-account.json:/app/secrets/firebase-service-account.json:ro" \
   --restart unless-stopped \
   --log-driver json-file \
   --log-opt max-size=10m \
