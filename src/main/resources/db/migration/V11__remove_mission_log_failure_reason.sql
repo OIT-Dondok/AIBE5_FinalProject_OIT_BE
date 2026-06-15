@@ -36,6 +36,14 @@ ALTER TABLE mission_log
             OR
             (
                 certification_status <> 'FAILED'
+                AND (
+                    decision_type IS NULL
+                    OR decision_type <> 'AUTO_APPROVE'
+                    OR (
+                        duplicate_hash = FALSE
+                        AND exif_risk IN ('NORMAL', 'MISSING')
+                    )
+                )
                 AND reject_reason_code IS NULL
                 AND reject_memo IS NULL
             )
