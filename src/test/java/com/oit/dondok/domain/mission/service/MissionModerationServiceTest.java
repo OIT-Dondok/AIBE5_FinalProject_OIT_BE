@@ -20,7 +20,6 @@ import com.oit.dondok.domain.mission.dto.response.MissionModerationResponse;
 import com.oit.dondok.domain.mission.entity.CertificationStatus;
 import com.oit.dondok.domain.mission.entity.DailySettlementType;
 import com.oit.dondok.domain.mission.entity.ExifRisk;
-import com.oit.dondok.domain.mission.entity.MissionFailureReason;
 import com.oit.dondok.domain.mission.entity.MissionLog;
 import com.oit.dondok.domain.mission.entity.MissionRule;
 import com.oit.dondok.domain.mission.entity.ModerationDecisionType;
@@ -108,7 +107,7 @@ class MissionModerationServiceTest {
     verify(moderationHistoryRepository).save(any(ModerationHistory.class));
   }
 
-  // 방장이 거절하면 MissionLog는 FAILED/MANUAL_REJECT 상태가 되고 failureReason은 비워둔다.
+  // 방장이 거절하면 MissionLog는 FAILED/MANUAL_REJECT 상태가 된다.
   @Test
   void rejectPendingReviewLogByHost() {
     MissionLog missionLog = pendingReviewLog();
@@ -121,7 +120,6 @@ class MissionModerationServiceTest {
             HOST_UUID, MISSION_LOG_ID, RejectReasonCode.MISSION_MISMATCH, "사진이 미션과 다릅니다");
 
     assertThat(missionLog.getCertificationStatus()).isEqualTo(CertificationStatus.FAILED);
-    assertThat(missionLog.getFailureReason()).isNull();
     assertThat(missionLog.getDecisionType()).isEqualTo(ModerationDecisionType.MANUAL_REJECT);
     assertThat(missionLog.getRejectReasonCode()).isEqualTo(RejectReasonCode.MISSION_MISMATCH);
     assertThat(missionLog.getRejectMemo()).isEqualTo("사진이 미션과 다릅니다");
@@ -140,8 +138,7 @@ class MissionModerationServiceTest {
   @Test
   void approveAutoRejectedLogByHost() {
     MissionLog missionLog = pendingReviewLog();
-    missionLog.rejectAutomatically(
-        host(missionLog), MissionFailureReason.DUPLICATE_IMAGE_HASH, NOW.minusMinutes(1));
+    missionLog.rejectAutomatically(host(missionLog), NOW.minusMinutes(1));
     givenMissionLogFound(missionLog);
     givenNoSettlementStarted();
     givenHistorySaveReturnsWithId();
@@ -150,7 +147,6 @@ class MissionModerationServiceTest {
         missionModerationService.approve(HOST_UUID, MISSION_LOG_ID);
 
     assertThat(missionLog.getCertificationStatus()).isEqualTo(CertificationStatus.SUCCESS);
-    assertThat(missionLog.getFailureReason()).isNull();
     assertThat(missionLog.getDecisionType()).isEqualTo(ModerationDecisionType.MANUAL_APPROVE);
     assertThat(missionLog.getRejectReasonCode()).isNull();
     assertThat(missionLog.getRejectMemo()).isNull();
@@ -172,7 +168,6 @@ class MissionModerationServiceTest {
             HOST_UUID, MISSION_LOG_ID, RejectReasonCode.MISSION_MISMATCH, "not matched");
 
     assertThat(missionLog.getCertificationStatus()).isEqualTo(CertificationStatus.FAILED);
-    assertThat(missionLog.getFailureReason()).isNull();
     assertThat(missionLog.getDecisionType()).isEqualTo(ModerationDecisionType.MANUAL_REJECT);
     assertThat(missionLog.getRejectReasonCode()).isEqualTo(RejectReasonCode.MISSION_MISMATCH);
     assertThat(missionLog.getRejectMemo()).isEqualTo("not matched");
@@ -238,7 +233,7 @@ class MissionModerationServiceTest {
     assertThat(beforeState.get("certification_status").asText()).isEqualTo("PENDING_REVIEW");
     assertThat(beforeState.get("decision_type").isNull()).isTrue();
     assertThat(afterState.get("certification_status").asText()).isEqualTo("FAILED");
-    assertThat(afterState.get("failure_reason").isNull()).isTrue();
+    assertThat(afterState.has("failure_reason")).isFalse();
     assertThat(afterState.get("decision_type").asText()).isEqualTo("MANUAL_REJECT");
     assertThat(afterState.get("reject_reason_code").asText()).isEqualTo("MISSION_MISMATCH");
     assertThat(afterState.get("reject_memo").asText()).isEqualTo("사진이 미션과 다릅니다");

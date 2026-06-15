@@ -17,7 +17,6 @@ import com.oit.dondok.domain.member.repository.MemberRepository;
 import com.oit.dondok.domain.mission.entity.CertificationStatus;
 import com.oit.dondok.domain.mission.entity.DailySettlementType;
 import com.oit.dondok.domain.mission.entity.ExifRisk;
-import com.oit.dondok.domain.mission.entity.MissionFailureReason;
 import com.oit.dondok.domain.mission.entity.MissionFrequencyType;
 import com.oit.dondok.domain.mission.entity.MissionLog;
 import com.oit.dondok.domain.mission.entity.MissionRule;
@@ -82,7 +81,6 @@ class MissionAutoCertificationProcessorTest {
 
     assertThat(missionLog.getCertificationStatus()).isEqualTo(CertificationStatus.SUCCESS);
     assertThat(missionLog.getDecisionType()).isEqualTo(ModerationDecisionType.AUTO_APPROVE);
-    assertThat(missionLog.getFailureReason()).isNull();
     assertThat(missionLog.getRejectReasonCode()).isNull();
     assertThat(missionLog.getRejectMemo()).isNull();
     assertThat(missionLog.getModerator().getId()).isEqualTo(SYSTEM_MEMBER_ID);
@@ -95,7 +93,7 @@ class MissionAutoCertificationProcessorTest {
     MissionLog missionLog = pendingReviewLog();
     givenAutoCertificationContext(missionLog);
     given(autoCertificationDecider.decide(missionLog))
-        .willReturn(AutoCertificationDecision.reject(MissionFailureReason.DUPLICATE_IMAGE_HASH));
+        .willReturn(AutoCertificationDecision.reject());
     ArgumentCaptor<ModerationHistory> historyCaptor =
         ArgumentCaptor.forClass(ModerationHistory.class);
 
@@ -103,7 +101,6 @@ class MissionAutoCertificationProcessorTest {
 
     assertThat(missionLog.getCertificationStatus()).isEqualTo(CertificationStatus.FAILED);
     assertThat(missionLog.getDecisionType()).isEqualTo(ModerationDecisionType.AUTO_REJECT);
-    assertThat(missionLog.getFailureReason()).isEqualTo(MissionFailureReason.DUPLICATE_IMAGE_HASH);
     assertThat(missionLog.getRejectReasonCode()).isNull();
     assertThat(missionLog.getRejectMemo()).isNull();
 

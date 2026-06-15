@@ -7,7 +7,6 @@ import com.oit.dondok.domain.crew.entity.CrewParticipant;
 import com.oit.dondok.domain.crew.entity.HostPolicyVersion;
 import com.oit.dondok.domain.member.entity.Member;
 import com.oit.dondok.domain.mission.entity.ExifRisk;
-import com.oit.dondok.domain.mission.entity.MissionFailureReason;
 import com.oit.dondok.domain.mission.entity.MissionLog;
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.Test;
@@ -22,7 +21,6 @@ class AutoCertificationDeciderTest {
     AutoCertificationDecision decision = decider.decide(missionLog(ExifRisk.NORMAL, true));
 
     assertThat(decision.approved()).isFalse();
-    assertThat(decision.failureReason()).isEqualTo(MissionFailureReason.DUPLICATE_IMAGE_HASH);
   }
 
   // EXIF 위험도가 NORMAL이면 자동 승인한다.
@@ -31,7 +29,6 @@ class AutoCertificationDeciderTest {
     AutoCertificationDecision decision = decider.decide(missionLog(ExifRisk.NORMAL, false));
 
     assertThat(decision.approved()).isTrue();
-    assertThat(decision.failureReason()).isNull();
   }
 
   // EXIF가 없지만 이미지가 제출된 로그는 MVP 정책에 따라 자동 승인한다.
@@ -40,7 +37,6 @@ class AutoCertificationDeciderTest {
     AutoCertificationDecision decision = decider.decide(missionLog(ExifRisk.MISSING, false));
 
     assertThat(decision.approved()).isTrue();
-    assertThat(decision.failureReason()).isNull();
   }
 
   // EXIF 시간이 유효하지 않으면 자동 반려한다.
@@ -49,7 +45,6 @@ class AutoCertificationDeciderTest {
     AutoCertificationDecision decision = decider.decide(missionLog(ExifRisk.TIME_INVALID, false));
 
     assertThat(decision.approved()).isFalse();
-    assertThat(decision.failureReason()).isEqualTo(MissionFailureReason.EXIF_TIME_INVALID);
   }
 
   private MissionLog missionLog(ExifRisk exifRisk, boolean duplicateHash) {
