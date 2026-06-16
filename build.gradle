@@ -54,7 +54,7 @@ dependencies {
 		implementation('org.apache.commons:commons-lang3:3.17.0') {
 			because 'Transitive swagger-core brings 3.13.0 with known CVE-2025-48924; force safe patch'
 		}
-		implementation('org.webjars:swagger-ui:5.32.2') {
+		implementation('org.webjars:swagger-ui:5.32.6') {
 			because 'Address DOMPurify CVEs in springdoc transitive WebJar payload'
 		}
 	}
