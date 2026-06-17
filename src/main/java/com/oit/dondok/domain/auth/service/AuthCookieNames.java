@@ -1,4 +1,4 @@
-package com.oit.dondok.domain.auth;
+package com.oit.dondok.domain.auth.service;
 
 public final class AuthCookieNames {
 

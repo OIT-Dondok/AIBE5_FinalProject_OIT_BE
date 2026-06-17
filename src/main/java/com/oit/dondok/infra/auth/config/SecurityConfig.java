@@ -32,7 +32,12 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsUtils;
 
 @Configuration
-@EnableConfigurationProperties({CorsProperties.class, OAuth2RedirectProperties.class})
+@EnableConfigurationProperties({
+  CorsProperties.class,
+  CookieProperties.class,
+  JwtTokenProperties.class,
+  OAuth2RedirectProperties.class
+})
 @RequiredArgsConstructor
 public class SecurityConfig {
 
