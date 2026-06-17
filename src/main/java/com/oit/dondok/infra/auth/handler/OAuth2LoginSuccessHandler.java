@@ -3,6 +3,7 @@ package com.oit.dondok.infra.auth.handler;
 import com.oit.dondok.domain.auth.exception.AuthErrorCode;
 import com.oit.dondok.domain.auth.service.OAuth2LoginCodeStore;
 import com.oit.dondok.domain.auth.service.OAuth2LoginService;
+import com.oit.dondok.domain.auth.service.OAuthUserInfo;
 import com.oit.dondok.global.exception.CustomException;
 import com.oit.dondok.infra.auth.oauth2.GoogleOAuth2UserInfo;
 import com.oit.dondok.infra.auth.oauth2.OAuth2RedirectProperties;
@@ -46,8 +47,7 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
   }
 
   /** Spring Security 인증 객체에서 Google 사용자 정보를 추출한다. */
-  private com.oit.dondok.domain.auth.service.OAuthUserInfo extractGoogleUserInfo(
-      Authentication authentication) {
+  private OAuthUserInfo extractGoogleUserInfo(Authentication authentication) {
     if (!(authentication instanceof OAuth2AuthenticationToken token)
         || !"google".equals(token.getAuthorizedClientRegistrationId())) {
       throw new CustomException(AuthErrorCode.OAUTH_LOGIN_FAILED);
