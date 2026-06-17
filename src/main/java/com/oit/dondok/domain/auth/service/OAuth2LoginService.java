@@ -4,6 +4,8 @@ import com.oit.dondok.domain.auth.exception.AuthErrorCode;
 import com.oit.dondok.domain.member.entity.Member;
 import com.oit.dondok.domain.member.entity.MemberStatus;
 import com.oit.dondok.domain.member.repository.MemberRepository;
+import com.oit.dondok.domain.point.entity.PointAccount;
+import com.oit.dondok.domain.point.repository.PointAccountRepository;
 import com.oit.dondok.global.exception.CustomException;
 import java.util.Locale;
 import java.util.UUID;
@@ -17,18 +19,19 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Service
 public class OAuth2LoginService {
 
-  private static final int NICKNAME_MAX_LENGTH = 50;
+  private static final int NICKNAME_MAX_LENGTH = 10;
+  private static final int NICKNAME_MIN_LENGTH = 2;
 
   private final MemberRepository memberRepository;
-  private final AuthService authService;
+  private final PointAccountRepository pointAccountRepository;
   private final TransactionTemplate requiresNewTransactionTemplate;
 
   public OAuth2LoginService(
       MemberRepository memberRepository,
-      AuthService authService,
+      PointAccountRepository pointAccountRepository,
       PlatformTransactionManager transactionManager) {
     this.memberRepository = memberRepository;
-    this.authService = authService;
+    this.pointAccountRepository = pointAccountRepository;
     this.requiresNewTransactionTemplate = new TransactionTemplate(transactionManager);
     this.requiresNewTransactionTemplate.setPropagationBehavior(
         TransactionDefinition.PROPAGATION_REQUIRES_NEW);
@@ -42,15 +45,7 @@ public class OAuth2LoginService {
     Member member = resolveMember(userInfo);
     validateActive(member);
 
-    LoginResult loginResult = authService.issueLoginToken(member);
-    return new OAuth2LoginResult(
-        loginResult.accessToken(),
-        loginResult.accessTokenExpiresIn(),
-        loginResult.refreshToken(),
-        loginResult.refreshTokenMaxAge(),
-        loginResult.memberUuid(),
-        loginResult.email(),
-        loginResult.nickname());
+    return new OAuth2LoginResult(member.getUuid());
   }
 
   /** OAuth 고유 식별자와 이메일을 기준으로 로그인 대상 회원을 결정한다. */
@@ -145,19 +140,23 @@ public class OAuth2LoginService {
 
   /** 랜덤 기반 닉네임 후보를 생성한다. */
   private String createRandomNickname() {
-    return "user_" + shortUuid();
+    return "u" + shortUuid();
   }
 
   /** 신규 OAuth 회원을 별도 트랜잭션에서 저장해 unique 충돌을 즉시 감지한다. */
   private Member saveOAuthMemberInNewTransaction(OAuthUserInfo userInfo, String nickname) {
     return requiresNewTransactionTemplate.execute(
-        status ->
-            memberRepository.saveAndFlush(
-                Member.createOAuthMember(
-                    normalizeEmail(userInfo.email()),
-                    nickname,
-                    userInfo.provider(),
-                    userInfo.providerId())));
+        status -> {
+          Member savedMember =
+              memberRepository.saveAndFlush(
+                  Member.createOAuthMember(
+                      normalizeEmail(userInfo.email()),
+                      nickname,
+                      userInfo.provider(),
+                      userInfo.providerId()));
+          pointAccountRepository.save(PointAccount.create(savedMember));
+          return savedMember;
+        });
   }
 
   /** 회원 생성 충돌 후 이미 생성된 회원이 있는지 다시 확인한다. */
@@ -175,9 +174,13 @@ public class OAuth2LoginService {
   /** Google 이름을 닉네임 후보로 사용할 수 있게 다듬는다. */
   private String normalizeNickname(String name) {
     if (name == null || name.isBlank()) {
-      return "user_" + shortUuid();
+      return createRandomNickname();
     }
-    return truncateNickname(name.trim(), NICKNAME_MAX_LENGTH);
+    String nickname = truncateNickname(name.trim(), NICKNAME_MAX_LENGTH);
+    if (nickname.length() < NICKNAME_MIN_LENGTH) {
+      return createRandomNickname();
+    }
+    return nickname;
   }
 
   /** 닉네임 최대 길이를 넘지 않도록 자른다. */

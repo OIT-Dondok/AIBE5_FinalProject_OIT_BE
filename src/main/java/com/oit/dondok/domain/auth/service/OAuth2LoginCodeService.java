@@ -19,18 +19,18 @@ public class OAuth2LoginCodeService {
 
   /** access token 교환에 사용할 1회용 로그인 코드를 발급한다. */
   @Transactional
-  public String issue(OAuth2LoginResult loginResult) {
+  public String issue(UUID memberUuid) {
     LocalDateTime now = LocalDateTime.now();
     removeExpiredCodes(now);
 
     String code = UUID.randomUUID().toString();
-    loginCodes.put(code, new OAuth2LoginCode(code, loginResult, now.plus(CODE_TTL)));
+    loginCodes.put(code, new OAuth2LoginCode(code, memberUuid, now.plus(CODE_TTL)));
     return code;
   }
 
-  /** 1회용 로그인 코드를 검증하고 저장된 로그인 결과를 반환한다. */
+  /** 1회용 로그인 코드를 검증하고 저장된 회원 UUID를 반환한다. */
   @Transactional
-  public OAuth2LoginResult consume(String code) {
+  public UUID consume(String code) {
     if (code == null || code.isBlank()) {
       throw new CustomException(AuthErrorCode.OAUTH_LOGIN_CODE_INVALID);
     }
@@ -39,7 +39,7 @@ public class OAuth2LoginCodeService {
     if (loginCode == null || loginCode.isExpired(LocalDateTime.now())) {
       throw new CustomException(AuthErrorCode.OAUTH_LOGIN_CODE_INVALID);
     }
-    return loginCode.loginResult();
+    return loginCode.memberUuid();
   }
 
   /** 만료된 로그인 코드를 메모리에서 정리한다. */

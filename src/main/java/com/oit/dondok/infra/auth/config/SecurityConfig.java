@@ -112,10 +112,9 @@ public class SecurityConfig {
   public OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler(
       OAuth2LoginService oAuth2LoginService,
       OAuth2LoginCodeService oAuth2LoginCodeService,
-      OAuth2RedirectProperties redirectProperties,
-      CookieProperties cookieProperties) {
+      OAuth2RedirectProperties redirectProperties) {
     return new OAuth2LoginSuccessHandler(
-        oAuth2LoginService, oAuth2LoginCodeService, redirectProperties, cookieProperties);
+        oAuth2LoginService, oAuth2LoginCodeService, redirectProperties);
   }
 
   @Bean

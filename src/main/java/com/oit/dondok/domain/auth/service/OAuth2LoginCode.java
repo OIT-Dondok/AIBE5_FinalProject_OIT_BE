@@ -1,8 +1,9 @@
 package com.oit.dondok.domain.auth.service;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
-public record OAuth2LoginCode(String code, OAuth2LoginResult loginResult, LocalDateTime expiresAt) {
+public record OAuth2LoginCode(String code, UUID memberUuid, LocalDateTime expiresAt) {
 
   /** 현재 시각 기준으로 로그인 코드가 만료되었는지 확인한다. */
   public boolean isExpired(LocalDateTime now) {

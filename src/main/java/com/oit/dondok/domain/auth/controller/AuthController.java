@@ -10,7 +10,6 @@ import com.oit.dondok.domain.auth.service.AuthCookieNames;
 import com.oit.dondok.domain.auth.service.AuthService;
 import com.oit.dondok.domain.auth.service.LoginResult;
 import com.oit.dondok.domain.auth.service.OAuth2LoginCodeService;
-import com.oit.dondok.domain.auth.service.OAuth2LoginResult;
 import com.oit.dondok.domain.auth.service.RefreshTokenResult;
 import com.oit.dondok.global.config.CookieProperties;
 import io.swagger.v3.oas.annotations.Operation;
@@ -84,7 +83,8 @@ public class AuthController {
   @PostMapping("/oauth2/token")
   public ResponseEntity<OAuth2TokenExchangeResponse> exchangeOAuth2Token(
       @Valid @RequestBody OAuth2TokenExchangeRequest request) {
-    OAuth2LoginResult result = oAuth2LoginCodeService.consume(request.code());
+    UUID memberUuid = oAuth2LoginCodeService.consume(request.code());
+    LoginResult result = authService.issueLoginToken(memberUuid);
 
     OAuth2TokenExchangeResponse response =
         OAuth2TokenExchangeResponse.bearer(
@@ -93,6 +93,9 @@ public class AuthController {
             new LoginMemberResponse(result.memberUuid(), result.email(), result.nickname()));
 
     return ResponseEntity.ok()
+        .header(
+            HttpHeaders.SET_COOKIE,
+            refreshTokenCookie(result.refreshToken(), result.refreshTokenMaxAge()).toString())
         .header(HttpHeaders.CACHE_CONTROL, "no-store, no-cache, must-revalidate, max-age=0")
         .header(HttpHeaders.PRAGMA, "no-cache")
         .header(HttpHeaders.EXPIRES, "0")

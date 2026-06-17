@@ -58,6 +58,21 @@ public class AuthService {
         member.getNickname());
   }
 
+  /** 회원 UUID로 활성 회원을 조회한 뒤 로그인 토큰을 발급한다. */
+  @Transactional
+  public LoginResult issueLoginToken(UUID memberUuid) {
+    Member member =
+        memberRepository
+            .findByUuid(memberUuid)
+            .orElseThrow(() -> new CustomException(AuthErrorCode.INVALID_CREDENTIALS));
+
+    if (member.getStatus() == MemberStatus.DEACTIVATED) {
+      throw new CustomException(AuthErrorCode.MEMBER_DEACTIVATED);
+    }
+
+    return issueLoginToken(member);
+  }
+
   /** 저장된 refresh token을 검증하고 rotation한 뒤 새 access token을 발급한다. */
   @Transactional
   public RefreshTokenResult refresh(String refreshToken) {
