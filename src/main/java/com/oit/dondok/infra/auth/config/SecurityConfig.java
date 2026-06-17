@@ -4,8 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.oit.dondok.domain.auth.service.OAuth2LoginCodeService;
 import com.oit.dondok.domain.auth.service.OAuth2LoginService;
 import com.oit.dondok.domain.auth.service.TokenProvider;
-import com.oit.dondok.global.config.CorsProperties;
 import com.oit.dondok.global.config.CookieProperties;
+import com.oit.dondok.global.config.CorsProperties;
 import com.oit.dondok.infra.auth.filter.CookieCsrfGuardFilter;
 import com.oit.dondok.infra.auth.filter.JwtAuthenticationFilter;
 import com.oit.dondok.infra.auth.handler.OAuth2LoginFailureHandler;
@@ -32,7 +32,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsUtils;
 
 @Configuration
-@EnableConfigurationProperties(CorsProperties.class)
+@EnableConfigurationProperties({CorsProperties.class, OAuth2RedirectProperties.class})
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -76,10 +76,7 @@ public class SecurityConfig {
     configureExceptionHandling(http, securityErrorHandler);
     configureAuthorization(http);
     configureOAuth2Login(
-        http,
-        oAuth2LoginSuccessHandler,
-        oAuth2LoginFailureHandler,
-        authorizationRequestRepository);
+        http, oAuth2LoginSuccessHandler, oAuth2LoginFailureHandler, authorizationRequestRepository);
     configureCookieCsrfGuardFilter(http, cookieCsrfGuardFilter);
     configureJwtAuthenticationFilter(http, jwtAuthenticationFilter);
 
@@ -123,11 +120,10 @@ public class SecurityConfig {
   }
 
   @Bean
-  public AuthorizationRequestRepository<OAuth2AuthorizationRequest>
-      authorizationRequestRepository(
-          ObjectMapper objectMapper,
-          JwtTokenProperties jwtTokenProperties,
-          CookieProperties cookieProperties) {
+  public AuthorizationRequestRepository<OAuth2AuthorizationRequest> authorizationRequestRepository(
+      ObjectMapper objectMapper,
+      JwtTokenProperties jwtTokenProperties,
+      CookieProperties cookieProperties) {
     return new CookieOAuth2AuthorizationRequestRepository(
         objectMapper, jwtTokenProperties, cookieProperties);
   }

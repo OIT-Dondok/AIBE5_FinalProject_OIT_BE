@@ -7,10 +7,10 @@ import com.oit.dondok.domain.auth.dto.response.LoginMemberResponse;
 import com.oit.dondok.domain.auth.dto.response.LoginResponse;
 import com.oit.dondok.domain.auth.dto.response.OAuth2TokenExchangeResponse;
 import com.oit.dondok.domain.auth.dto.response.RefreshTokenResponse;
-import com.oit.dondok.domain.auth.service.OAuth2LoginCodeService;
-import com.oit.dondok.domain.auth.service.OAuth2LoginResult;
 import com.oit.dondok.domain.auth.service.AuthService;
 import com.oit.dondok.domain.auth.service.LoginResult;
+import com.oit.dondok.domain.auth.service.OAuth2LoginCodeService;
+import com.oit.dondok.domain.auth.service.OAuth2LoginResult;
 import com.oit.dondok.domain.auth.service.RefreshTokenResult;
 import com.oit.dondok.global.config.CookieProperties;
 import io.swagger.v3.oas.annotations.Operation;
@@ -78,7 +78,9 @@ public class AuthController {
   }
 
   /** OAuth 성공 후 발급된 1회용 code를 access token으로 교환한다. */
-  @Operation(summary = "OAuth 로그인 토큰 교환", description = "OAuth 성공 redirect로 받은 code를 access token으로 교환합니다.")
+  @Operation(
+      summary = "OAuth 로그인 토큰 교환",
+      description = "OAuth 성공 redirect로 받은 code를 access token으로 교환합니다.")
   @PostMapping("/oauth2/token")
   public ResponseEntity<OAuth2TokenExchangeResponse> exchangeOAuth2Token(
       @Valid @RequestBody OAuth2TokenExchangeRequest request) {

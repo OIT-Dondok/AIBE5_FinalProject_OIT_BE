@@ -79,7 +79,9 @@ public class CookieOAuth2AuthorizationRequestRepository
     if (cookies == null) {
       return Optional.empty();
     }
-    return Arrays.stream(cookies).filter(cookie -> COOKIE_NAME.equals(cookie.getName())).findFirst();
+    return Arrays.stream(cookies)
+        .filter(cookie -> COOKIE_NAME.equals(cookie.getName()))
+        .findFirst();
   }
 
   /** OAuth 인증 요청에서 필요한 필드만 JSON으로 직렬화하고 서명한다. */
@@ -90,7 +92,8 @@ public class CookieOAuth2AuthorizationRequestRepository
       String payload = base64Url(objectMapper.writeValueAsBytes(cookieValue));
       return payload + "." + base64Url(sign(payload));
     } catch (JsonProcessingException exception) {
-      throw new IllegalStateException("Failed to serialize OAuth2 authorization request.", exception);
+      throw new IllegalStateException(
+          "Failed to serialize OAuth2 authorization request.", exception);
     }
   }
 
