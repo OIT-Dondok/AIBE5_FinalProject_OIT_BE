@@ -34,6 +34,12 @@ public class AuthService {
   public LoginResult login(String email, String password) {
     Member member = findActiveMemberByCredentials(email, password);
 
+    return issueLoginToken(member);
+  }
+
+  /** 인증된 회원에게 access token과 refresh token을 발급하고 refresh token hash를 저장한다. */
+  @Transactional
+  public LoginResult issueLoginToken(Member member) {
     String accessToken = tokenProvider.createAccessToken(member.getUuid());
     String refreshToken = tokenProvider.createRefreshToken(member.getUuid());
     TokenPayload accessPayload = tokenProvider.parseAccessToken(accessToken);
