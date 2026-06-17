@@ -6,9 +6,7 @@ import com.oit.dondok.domain.member.entity.MemberStatus;
 import com.oit.dondok.domain.member.repository.MemberRepository;
 import com.oit.dondok.global.exception.CustomException;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.UUID;
-import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -17,14 +15,24 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
-@RequiredArgsConstructor
 public class OAuth2LoginService {
 
   private static final int NICKNAME_MAX_LENGTH = 50;
 
   private final MemberRepository memberRepository;
   private final AuthService authService;
-  private final PlatformTransactionManager transactionManager;
+  private final TransactionTemplate requiresNewTransactionTemplate;
+
+  public OAuth2LoginService(
+      MemberRepository memberRepository,
+      AuthService authService,
+      PlatformTransactionManager transactionManager) {
+    this.memberRepository = memberRepository;
+    this.authService = authService;
+    this.requiresNewTransactionTemplate = new TransactionTemplate(transactionManager);
+    this.requiresNewTransactionTemplate.setPropagationBehavior(
+        TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+  }
 
   /** Google 사용자 정보로 회원을 조회하거나 생성한 뒤 서비스 로그인 토큰을 발급한다. */
   @Transactional
@@ -89,7 +97,7 @@ public class OAuth2LoginService {
       }
     }
 
-    throw Objects.requireNonNull(lastException, "lastException must not be null");
+    throw new CustomException(AuthErrorCode.OAUTH_LOGIN_FAILED, lastException);
   }
 
   /** Google 이메일과 인증 여부를 검증한다. */
@@ -142,10 +150,7 @@ public class OAuth2LoginService {
 
   /** 신규 OAuth 회원을 별도 트랜잭션에서 저장해 unique 충돌을 즉시 감지한다. */
   private Member saveOAuthMemberInNewTransaction(OAuthUserInfo userInfo, String nickname) {
-    TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
-    transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
-
-    return transactionTemplate.execute(
+    return requiresNewTransactionTemplate.execute(
         status ->
             memberRepository.saveAndFlush(
                 Member.createOAuthMember(
