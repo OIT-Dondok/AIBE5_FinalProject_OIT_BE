@@ -1,7 +1,7 @@
 package com.oit.dondok.infra.auth.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.oit.dondok.domain.auth.service.OAuth2LoginCodeStore;
+import com.oit.dondok.domain.auth.code.OAuth2LoginCodeStore;
 import com.oit.dondok.domain.auth.service.OAuth2LoginService;
 import com.oit.dondok.domain.auth.service.TokenProvider;
 import com.oit.dondok.global.config.CookieProperties;

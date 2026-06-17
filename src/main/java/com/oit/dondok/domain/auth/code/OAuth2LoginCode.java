@@ -1,4 +1,4 @@
-package com.oit.dondok.domain.auth.service;
+package com.oit.dondok.domain.auth.code;
 
 import java.time.LocalDateTime;
 import java.util.UUID;

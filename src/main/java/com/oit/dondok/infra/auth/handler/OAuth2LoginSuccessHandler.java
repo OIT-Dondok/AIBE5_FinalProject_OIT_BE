@@ -1,7 +1,7 @@
 package com.oit.dondok.infra.auth.handler;
 
+import com.oit.dondok.domain.auth.code.OAuth2LoginCodeStore;
 import com.oit.dondok.domain.auth.exception.AuthErrorCode;
-import com.oit.dondok.domain.auth.service.OAuth2LoginCodeStore;
 import com.oit.dondok.domain.auth.service.OAuth2LoginService;
 import com.oit.dondok.domain.auth.service.OAuthUserInfo;
 import com.oit.dondok.global.exception.CustomException;

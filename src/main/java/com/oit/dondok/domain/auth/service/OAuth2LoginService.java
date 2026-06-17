@@ -135,7 +135,7 @@ public class OAuth2LoginService {
       }
     }
 
-    return "user_" + shortUuid();
+    return createRandomNickname();
   }
 
   /** 랜덤 기반 닉네임 후보를 생성한다. */

@@ -53,6 +53,7 @@ class ArchitectureRulesTest {
       Set.of(
           "constant",
           "controller",
+          "code",
           "service",
           "repository",
           "entity",

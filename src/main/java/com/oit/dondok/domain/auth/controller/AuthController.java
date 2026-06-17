@@ -1,5 +1,6 @@
 package com.oit.dondok.domain.auth.controller;
 
+import com.oit.dondok.domain.auth.code.OAuth2LoginCodeStore;
 import com.oit.dondok.domain.auth.constant.AuthCookieNames;
 import com.oit.dondok.domain.auth.dto.request.LoginRequest;
 import com.oit.dondok.domain.auth.dto.request.OAuth2TokenExchangeRequest;
@@ -9,7 +10,6 @@ import com.oit.dondok.domain.auth.dto.response.OAuth2TokenExchangeResponse;
 import com.oit.dondok.domain.auth.dto.response.RefreshTokenResponse;
 import com.oit.dondok.domain.auth.service.AuthService;
 import com.oit.dondok.domain.auth.service.LoginResult;
-import com.oit.dondok.domain.auth.service.OAuth2LoginCodeStore;
 import com.oit.dondok.domain.auth.service.RefreshTokenResult;
 import com.oit.dondok.global.config.CookieProperties;
 import io.swagger.v3.oas.annotations.Operation;

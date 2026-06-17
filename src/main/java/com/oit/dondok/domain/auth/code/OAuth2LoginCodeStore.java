@@ -1,4 +1,4 @@
-package com.oit.dondok.domain.auth.service;
+package com.oit.dondok.domain.auth.code;
 
 import com.oit.dondok.domain.auth.exception.AuthErrorCode;
 import com.oit.dondok.global.exception.CustomException;

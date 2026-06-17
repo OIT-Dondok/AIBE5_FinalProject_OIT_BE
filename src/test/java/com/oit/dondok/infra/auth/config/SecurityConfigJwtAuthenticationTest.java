@@ -9,8 +9,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.oit.dondok.domain.auth.code.OAuth2LoginCodeStore;
 import com.oit.dondok.domain.auth.exception.AuthErrorCode;
-import com.oit.dondok.domain.auth.service.OAuth2LoginCodeStore;
 import com.oit.dondok.domain.auth.service.OAuth2LoginService;
 import com.oit.dondok.domain.auth.service.TokenPayload;
 import com.oit.dondok.domain.auth.service.TokenProvider;
