@@ -1,15 +1,15 @@
 package com.oit.dondok.domain.auth.controller;
 
+import com.oit.dondok.domain.auth.constant.AuthCookieNames;
 import com.oit.dondok.domain.auth.dto.request.LoginRequest;
 import com.oit.dondok.domain.auth.dto.request.OAuth2TokenExchangeRequest;
 import com.oit.dondok.domain.auth.dto.response.LoginMemberResponse;
 import com.oit.dondok.domain.auth.dto.response.LoginResponse;
 import com.oit.dondok.domain.auth.dto.response.OAuth2TokenExchangeResponse;
 import com.oit.dondok.domain.auth.dto.response.RefreshTokenResponse;
-import com.oit.dondok.domain.auth.service.AuthCookieNames;
 import com.oit.dondok.domain.auth.service.AuthService;
 import com.oit.dondok.domain.auth.service.LoginResult;
-import com.oit.dondok.domain.auth.service.OAuth2LoginCodeService;
+import com.oit.dondok.domain.auth.service.OAuth2LoginCodeStore;
 import com.oit.dondok.domain.auth.service.RefreshTokenResult;
 import com.oit.dondok.global.config.CookieProperties;
 import io.swagger.v3.oas.annotations.Operation;
@@ -34,7 +34,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
   private final AuthService authService;
-  private final OAuth2LoginCodeService oAuth2LoginCodeService;
+  private final OAuth2LoginCodeStore oAuth2LoginCodeStore;
   private final CookieProperties cookieProperties;
 
   /** 회원을 로그인시키고 refresh token은 HttpOnly 쿠키로 전달한다. */
@@ -83,7 +83,7 @@ public class AuthController {
   @PostMapping("/oauth2/token")
   public ResponseEntity<OAuth2TokenExchangeResponse> exchangeOAuth2Token(
       @Valid @RequestBody OAuth2TokenExchangeRequest request) {
-    UUID memberUuid = oAuth2LoginCodeService.consume(request.code());
+    UUID memberUuid = oAuth2LoginCodeStore.consume(request.code());
     LoginResult result = authService.issueLoginToken(memberUuid);
 
     OAuth2TokenExchangeResponse response =

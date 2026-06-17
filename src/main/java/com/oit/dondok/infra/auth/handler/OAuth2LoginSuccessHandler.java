@@ -1,8 +1,7 @@
 package com.oit.dondok.infra.auth.handler;
 
 import com.oit.dondok.domain.auth.exception.AuthErrorCode;
-import com.oit.dondok.domain.auth.service.OAuth2LoginCodeService;
-import com.oit.dondok.domain.auth.service.OAuth2LoginResult;
+import com.oit.dondok.domain.auth.service.OAuth2LoginCodeStore;
 import com.oit.dondok.domain.auth.service.OAuth2LoginService;
 import com.oit.dondok.global.exception.CustomException;
 import com.oit.dondok.infra.auth.oauth2.GoogleOAuth2UserInfo;
@@ -11,6 +10,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
@@ -24,7 +24,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
   private final OAuth2LoginService oAuth2LoginService;
-  private final OAuth2LoginCodeService oAuth2LoginCodeService;
+  private final OAuth2LoginCodeStore oAuth2LoginCodeStore;
   private final OAuth2RedirectProperties redirectProperties;
 
   /** Google OAuth 인증 성공 후 회원을 확정하고 프론트 성공 페이지로 redirect한다. */
@@ -33,8 +33,8 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
       HttpServletRequest request, HttpServletResponse response, Authentication authentication)
       throws IOException, ServletException {
     try {
-      OAuth2LoginResult result = oAuth2LoginService.login(extractGoogleUserInfo(authentication));
-      String code = oAuth2LoginCodeService.issue(result.memberUuid());
+      UUID memberUuid = oAuth2LoginService.login(extractGoogleUserInfo(authentication));
+      String code = oAuth2LoginCodeStore.issue(memberUuid);
 
       response.sendRedirect(successRedirectUri(code));
     } catch (CustomException exception) {

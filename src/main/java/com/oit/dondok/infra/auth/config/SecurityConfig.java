@@ -1,7 +1,7 @@
 package com.oit.dondok.infra.auth.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.oit.dondok.domain.auth.service.OAuth2LoginCodeService;
+import com.oit.dondok.domain.auth.service.OAuth2LoginCodeStore;
 import com.oit.dondok.domain.auth.service.OAuth2LoginService;
 import com.oit.dondok.domain.auth.service.TokenProvider;
 import com.oit.dondok.global.config.CookieProperties;
@@ -111,10 +111,10 @@ public class SecurityConfig {
   @Bean
   public OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler(
       OAuth2LoginService oAuth2LoginService,
-      OAuth2LoginCodeService oAuth2LoginCodeService,
+      OAuth2LoginCodeStore oAuth2LoginCodeStore,
       OAuth2RedirectProperties redirectProperties) {
     return new OAuth2LoginSuccessHandler(
-        oAuth2LoginService, oAuth2LoginCodeService, redirectProperties);
+        oAuth2LoginService, oAuth2LoginCodeStore, redirectProperties);
   }
 
   @Bean

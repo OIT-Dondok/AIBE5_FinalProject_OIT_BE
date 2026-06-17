@@ -39,13 +39,13 @@ public class OAuth2LoginService {
 
   /** Google 사용자 정보로 회원을 조회하거나 생성한 뒤 서비스 로그인 토큰을 발급한다. */
   @Transactional
-  public OAuth2LoginResult login(OAuthUserInfo userInfo) {
+  public UUID login(OAuthUserInfo userInfo) {
     validateUserInfo(userInfo);
 
     Member member = resolveMember(userInfo);
     validateActive(member);
 
-    return new OAuth2LoginResult(member.getUuid());
+    return member.getUuid();
   }
 
   /** OAuth 고유 식별자와 이메일을 기준으로 로그인 대상 회원을 결정한다. */

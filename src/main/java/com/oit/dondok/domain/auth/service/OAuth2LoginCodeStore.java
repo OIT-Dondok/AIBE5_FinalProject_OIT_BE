@@ -7,18 +7,16 @@ import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.stereotype.Component;
 
-@Service
-public class OAuth2LoginCodeService {
+@Component
+public class OAuth2LoginCodeStore {
 
   private static final Duration CODE_TTL = Duration.ofMinutes(3);
 
   private final Map<String, OAuth2LoginCode> loginCodes = new ConcurrentHashMap<>();
 
   /** access token 교환에 사용할 1회용 로그인 코드를 발급한다. */
-  @Transactional
   public String issue(UUID memberUuid) {
     LocalDateTime now = LocalDateTime.now();
     removeExpiredCodes(now);
@@ -29,7 +27,6 @@ public class OAuth2LoginCodeService {
   }
 
   /** 1회용 로그인 코드를 검증하고 저장된 회원 UUID를 반환한다. */
-  @Transactional
   public UUID consume(String code) {
     if (code == null || code.isBlank()) {
       throw new CustomException(AuthErrorCode.OAUTH_LOGIN_CODE_INVALID);
