@@ -82,6 +82,9 @@ class OAuth2LoginServiceTest {
     UUID memberUuid = service.login(userInfo);
 
     assertThat(memberUuid).isEqualTo(member.getUuid());
+    then(memberRepository)
+        .should()
+        .findByOauthProviderAndOauthProviderId(OAuthProvider.GOOGLE, "google-sub-1");
     then(memberRepository).shouldHaveNoMoreInteractions();
     then(pointAccountRepository).shouldHaveNoInteractions();
   }
