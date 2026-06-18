@@ -14,7 +14,7 @@ services:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus-data:/prometheus
     networks:
-      - dondok-network
+      - app-network
     restart: unless-stopped
 
   grafana:
@@ -30,7 +30,7 @@ services:
       - grafana-data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
     networks:
-      - dondok-network
+      - app-network
     restart: unless-stopped
     depends_on:
       - prometheus
@@ -40,5 +40,6 @@ volumes:
   grafana-data:
 
 networks:
-  dondok-network:
+  app-network:
+    name: "${APP_NETWORK:-dondok-network}"
     external: true
