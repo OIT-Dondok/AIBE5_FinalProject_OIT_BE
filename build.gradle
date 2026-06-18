@@ -144,6 +144,9 @@ dependencyCheck {
 	nvd {
 		apiKey = System.getenv('NVD_API_KEY') ?: ''
 		validForHours = 24
+		// NVD can rate-limit or return transient 429/5xx; add more conservative retry behavior.
+		delay = 10000
+		maxRetryCount = 20
 	}
 	analyzers {
 		assemblyEnabled = false
