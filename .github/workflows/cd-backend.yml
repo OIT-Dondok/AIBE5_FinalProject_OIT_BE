@@ -138,7 +138,7 @@ jobs:
           set -euo pipefail
           ssh -i ~/.ssh/dondok_ec2 "${EC2_USERNAME}@${EC2_HOST}" "
             set -euo pipefail
-            sudo mkdir -p ${APP_ROOT}/deploy ${APP_ROOT}/nginx ${APP_ROOT}/config ${APP_ROOT}/releases
+            sudo mkdir -p ${APP_ROOT}/deploy ${APP_ROOT}/nginx ${APP_ROOT}/config ${APP_ROOT}/releases ${APP_ROOT}/monitoring
             sudo chown -R ${EC2_USERNAME}:${EC2_USERNAME} ${APP_ROOT}
           "
 
@@ -151,6 +151,9 @@ jobs:
           set -euo pipefail
           scp -i ~/.ssh/dondok_ec2 deploy/*.sh "${EC2_USERNAME}@${EC2_HOST}:${APP_ROOT}/deploy/"
           scp -i ~/.ssh/dondok_ec2 nginx/*-upstream.conf "${EC2_USERNAME}@${EC2_HOST}:${APP_ROOT}/nginx/"
+          scp -i ~/.ssh/dondok_ec2 monitoring/compose.yaml "${EC2_USERNAME}@${EC2_HOST}:${APP_ROOT}/monitoring/compose.yaml"
+          scp -i ~/.ssh/dondok_ec2 monitoring/.env.example "${EC2_USERNAME}@${EC2_HOST}:${APP_ROOT}/monitoring/.env.example"
+          scp -i ~/.ssh/dondok_ec2 -r monitoring/prometheus monitoring/grafana "${EC2_USERNAME}@${EC2_HOST}:${APP_ROOT}/monitoring/"
           scp -i ~/.ssh/dondok_ec2 src/main/resources/application-prod.yml "${EC2_USERNAME}@${EC2_HOST}:${APP_ROOT}/config/application-prod.yml"
 
           ssh -i ~/.ssh/dondok_ec2 "${EC2_USERNAME}@${EC2_HOST}" "
