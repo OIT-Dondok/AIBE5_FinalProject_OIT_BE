@@ -166,6 +166,32 @@ jobs:
             fi
           "
 
+      - name: Start monitoring stack
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
+          MONITORING_ENV: ${{ secrets.MONITORING_ENV }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${MONITORING_ENV:-}" ]; then
+            echo "::warning::MONITORING_ENV secret is not configured; skipping monitoring stack startup"
+            exit 0
+          fi
+
+          trap 'rm -f monitoring-env.b64' EXIT
+
+          printf '%s' "${MONITORING_ENV}" | base64 -w 0 > monitoring-env.b64
+          scp -i ~/.ssh/dondok_ec2 monitoring-env.b64 "${EC2_USERNAME}@${EC2_HOST}:/tmp/dondok-monitoring-env.b64"
+
+          ssh -i ~/.ssh/dondok_ec2 "${EC2_USERNAME}@${EC2_HOST}" "
+            set -euo pipefail
+            trap 'rm -f /tmp/dondok-monitoring-env.b64' EXIT
+            base64 -d /tmp/dondok-monitoring-env.b64 | tr -d '\r' > ${APP_ROOT}/monitoring/.env
+            chmod 600 ${APP_ROOT}/monitoring/.env
+            ${APP_ROOT}/deploy/start-monitoring.sh
+          "
+
       # EC2가 Docker Hub image를 pull할 수 있도록 EC2에서도 로그인한다.
       # validate-runtime.sh의 컨테이너 IMDS 검증에도 public curl image pull이 필요할 수 있다.
       - name: Login Docker Hub on EC2
