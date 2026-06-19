@@ -19,6 +19,14 @@ CONTAINER_PORT="${CONTAINER_PORT:-8080}"
 APP_NETWORK="${APP_NETWORK:-dondok-network}"
 APP_UID="${APP_UID:-10001}"
 APP_GID="${APP_GID:-10001}"
+if [[ ! "${APP_UID}" =~ ^[1-9][0-9]*$ ]]; then
+  echo "[ERROR] APP_UID must be a positive integer: ${APP_UID}" >&2
+  exit 1
+fi
+if [[ ! "${APP_GID}" =~ ^[1-9][0-9]*$ ]]; then
+  echo "[ERROR] APP_GID must be a positive integer: ${APP_GID}" >&2
+  exit 1
+fi
 
 NGINX_DIR="${APP_ROOT}/nginx"
 ACTIVE_UPSTREAM="${NGINX_DIR}/active-upstream.conf"
