@@ -32,7 +32,9 @@ WORKDIR /app
 
 # Run the application as a non-root user.
 RUN addgroup --system appgroup \
- && adduser --system --ingroup appgroup appuser
+ && adduser --system --ingroup appgroup appuser \
+ && mkdir -p /app/logs \
+ && chown -R appuser:appgroup /app/logs
 
 # Copy only the bootable application JAR from the build stage.
 COPY --from=build /workspace/app.jar app.jar
