@@ -31,8 +31,8 @@ FROM eclipse-temurin:17.0.11_9-jre-jammy
 WORKDIR /app
 
 # Run the application as a non-root user.
-RUN addgroup --system appgroup \
- && adduser --system --ingroup appgroup appuser \
+RUN addgroup --system --gid 10001 appgroup \
+ && adduser --system --uid 10001 --ingroup appgroup appuser \
  && mkdir -p /app/logs \
  && chown -R appuser:appgroup /app/logs
 
