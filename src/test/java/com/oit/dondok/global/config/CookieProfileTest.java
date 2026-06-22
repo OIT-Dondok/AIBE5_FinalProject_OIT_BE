@@ -1,4 +1,4 @@
-package com.oit.dondok.global.config;
+﻿package com.oit.dondok.global.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -44,7 +44,7 @@ class CookieProfileTest {
         .run(
             context -> {
               CookieProperties props = context.getBean(CookieProperties.class);
-              // 실제 application-prod.yml에 적힌 예상값과 비교
+              // application-prod.yml의 placeholder가 쿠키 환경변수 값으로 치환되는지 검증
               assertThat(props.sameSite()).isEqualTo("Lax");
               assertThat(props.secure()).isFalse();
             });
