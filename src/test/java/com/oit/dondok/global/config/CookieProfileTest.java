@@ -1,4 +1,4 @@
-﻿package com.oit.dondok.global.config;
+package com.oit.dondok.global.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -40,9 +40,7 @@ class CookieProfileTest {
   void prodConfigCheck() {
     contextRunner
         .withPropertyValues(
-            "spring.profiles.active=prod",
-            "COOKIE_SECURE=true",
-            "COOKIE_SAME_SITE=None")
+            "spring.profiles.active=prod", "COOKIE_SECURE=true", "COOKIE_SAME_SITE=None")
         .run(
             context -> {
               CookieProperties props = context.getBean(CookieProperties.class);
@@ -56,9 +54,7 @@ class CookieProfileTest {
   void prodConfigBindsCookieEnvironmentOverrides() {
     contextRunner
         .withPropertyValues(
-            "spring.profiles.active=prod",
-            "COOKIE_SECURE=false",
-            "COOKIE_SAME_SITE=Lax")
+            "spring.profiles.active=prod", "COOKIE_SECURE=false", "COOKIE_SAME_SITE=Lax")
         .run(
             context -> {
               CookieProperties props = context.getBean(CookieProperties.class);
