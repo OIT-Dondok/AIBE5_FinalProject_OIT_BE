@@ -39,7 +39,8 @@ class CookieProfileTest {
   @DisplayName("운영 설정: application-prod.yml 파일의 값을 바인딩한다")
   void prodConfigCheck() {
     contextRunner
-        .withPropertyValues("spring.profiles.active=prod") // 프로파일만 지정
+        .withPropertyValues(
+            "spring.profiles.active=prod", "COOKIE_SECURE=true", "COOKIE_SAME_SITE=None")
         .run(
             context -> {
               CookieProperties props = context.getBean(CookieProperties.class);
