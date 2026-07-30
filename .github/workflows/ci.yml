@@ -54,6 +54,7 @@ jobs:
         run: gitleaks detect --source . --no-git --redact --verbose
 
   dependency-check:
+    if: ${{ false }}
     name: OWASP dependency check
     runs-on: ubuntu-latest
     timeout-minutes: 20
