@@ -1,0 +1,60 @@
+# Local observability baseline
+
+This is a disposable, local-only baseline for point and settlement investigation. The Compose CPU/memory limits approximate a t3.small envelope (2 vCPU/2 GiB); they do **not** reproduce EC2, RDS, S3, or network behaviour.
+
+## Start and smoke-test
+
+With Docker running and `backend-personal/.env` populated from `.env.example`, run:
+
+```sh
+GRAFANA_ADMIN_PASSWORD='your-existing-or-new-local-password' ./scripts/observability-smoke.sh
+```
+
+Grafana stores its administrator password in the local `grafana-data` volume on its first start. On a fresh volume, the value above initializes that password; with an existing volume, pass its existing password. The smoke script preflights this non-destructively and never resets volumes. If the old local password is unavailable and discarding local Prometheus/Grafana history is intentional, explicitly reset the monitoring volumes before rerunning:
+
+```sh
+GRAFANA_ADMIN_PASSWORD='new-local-password' docker compose -f monitoring/compose.yaml down -v
+```
+
+The script creates the local-only shared Docker network when absent, validates both Compose files, starts MySQL/Redis/LocalStack/the Boot app and the existing Prometheus/Grafana stack, waits for `/api/actuator/health/readiness`, confirms Prometheus reports `dondok-api-local` as `UP`, creates non-mutating point-history and settlement-detail smoke traffic, checks the generic scrape, and verifies the provisioned dashboard.
+
+- App readiness: <http://localhost:8080/api/actuator/health/readiness>
+- Prometheus targets: <http://localhost:9090/targets>
+- Grafana: <http://localhost:3000/d/point-settlement-baseline>
+
+The app runs with `local,observability`. That profile exposes only `health,prometheus` at `/api/actuator`; it does not expose `info`, env, metrics, or mutating Actuator endpoints. The Prometheus `dondok-api-blue` and `dondok-api-green` jobs remain deployment targets; `dondok-api-local` is additive.
+
+## Manual start for load-test preparation
+
+Use the smoke script above for the complete reproducible check. To keep the local topology running while preparing a later load test, start the application/dependencies and monitoring stack separately:
+
+```sh
+# MySQL, Redis, LocalStack, and the Boot application
+docker compose -f compose.yaml -f compose.observability.yaml \
+  --profile observability up -d --build
+
+# Prometheus and Grafana on the same shared Docker network
+GRAFANA_ADMIN_PASSWORD='your-existing-or-new-local-password' \
+  docker compose -f monitoring/compose.yaml up -d
+```
+
+The two Compose projects share `dondok-network`; Prometheus scrapes the local application at `app:8080`. This PR provides smoke traffic only. Add and run a load generator in its later scoped PR.
+
+## Dashboard evidence
+
+`Point & Settlement Baseline` is provisioned from source and contains HTTP RPS/errors/p95/p99, process CPU/JVM total memory, JVM heap/GC, Hikari active/idle/pending/max, datasource connection evidence, and a slow-query evidence panel. No database exporter is installed. Inspect the local MySQL evidence without exporting its password from `.env`:
+
+```sh
+docker compose -f compose.yaml -f compose.observability.yaml exec mysql sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "SHOW VARIABLES; SHOW GLOBAL STATUS;"' | grep -E 'slow_query_log|long_query_time|Slow_queries'
+```
+
+Correlate this with Hikari pressure before adding a platform.
+
+The smoke only proves topology and generic instrumentation. It intentionally does not run a load generator, emit custom point/settlement metrics, tune resources, or make a capacity claim. Record workload, data scale, timestamp, image/configuration, raw results, and dashboard/query evidence before comparing performance.
+
+## Stop
+
+```sh
+docker compose -f compose.yaml -f compose.observability.yaml --profile observability down
+docker compose -f monitoring/compose.yaml down
+```
